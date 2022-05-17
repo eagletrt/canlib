@@ -1,0 +1,20 @@
+import {{filename}}
+
+{% for message in messages %}
+print("***{{ utils.to_camel_case(message.name,"_") }}Msg***")
+
+{{ utils.to_camel_case(message.name,"_") }}_s = {{ filename }}.{{ utils.to_camel_case(message.name,"_") }}Msg({{ ", ".join(random_values(message.fields)) }})
+    {% if len(message.fields) > 0 %}
+print(f"Before: {{ " ".join(args(message,"s")) }}")
+    {% endif %}
+data = {{ utils.to_camel_case(message.name,"_") }}_s.serialize()
+
+{{ utils.to_camel_case(message.name,"_") }}_d = {{ filename }}.{{ utils.to_camel_case(message.name,"_") }}Msg()
+{{ utils.to_camel_case(message.name,"_") }}_d.deserialize(data)
+    {% if len(message.fields) > 0 %}
+print(f"After:  {{ " ".join(args(message, "d")) }}")
+
+    {% endif %}
+assert({{ utils.to_camel_case(message.name,"_") }}_s == {{ utils.to_camel_case(message.name,"_") }}_d)
+
+{% endfor %}

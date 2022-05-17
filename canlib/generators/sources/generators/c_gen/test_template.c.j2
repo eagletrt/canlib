@@ -1,0 +1,26 @@
+#include <assert.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+
+#include "{{ filename }}.h"
+
+int main() {
+{% for message in messages %}
+    printf("***{{ utils.to_camel_case(message.name,"_") }}Msg***\n");
+    uint8_t buffer_{{ utils.to_camel_case(message.name,"_") }}[{{ buffer_size(message.name) }}];
+    {{ utils.to_camel_case(message.name,"_") }}Msg {{ utils.to_camel_case(message.name,"_") }}_s = { {{ ", ".join(random_values(message.fields)) }} };
+    {% if len(message.fields) > 0 %}
+    printf("Before: {{ " ".join(printf_cast(message.fields)) }}\n", {{ ", ".join(printf_arguments_cast(message,"s")) }});
+    {% endif %}
+    serialize_{{ utils.to_camel_case(message.name,"_") }}Msg(buffer_{{ utils.to_camel_case(message.name,"_") }}, &{{ utils.to_camel_case(message.name,"_") }}_s);
+    {{ utils.to_camel_case(message.name,"_") }}Msg {{ utils.to_camel_case(message.name,"_") }}_d;
+    deserialize_{{ utils.to_camel_case(message.name,"_") }}(buffer_{{ utils.to_camel_case(message.name,"_") }}, &{{ utils.to_camel_case(message.name,"_") }}_d);
+    {% if len(message.fields) > 0 %}
+    printf("After:  {{ " ".join(printf_cast(message.fields)) }}\n", {{ ", ".join(printf_arguments_cast(message,"d")) }});
+    {% endif %}
+    assert(memcmp(&{{ utils.to_camel_case(message.name,"_") }}_s, &{{ utils.to_camel_case(message.name,"_") }}_d, {{ message.name.upper() }}_SIZE) == 0);
+    printf("\n");
+{% endfor %}
+    return 0;
+}

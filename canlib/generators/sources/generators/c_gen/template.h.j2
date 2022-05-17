@@ -1,0 +1,157 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#ifndef {{ filename.upper() }}_H
+#define {{ filename.upper() }}_H
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <assert.h>
+
+/*
+*   NAKED SHARED 
+*   Common functions, defines and checks between all the network.h files
+*/
+#ifndef __NAKED_SHARED
+#define __NAKED_SHARED
+    /*
+    *   Endianness check
+    *   static check for supported endianness
+    */
+    #ifndef __NAKED_ENDIAN_ORDER
+        #define __NAKED_ENDIAN_ORDER 1094861636L // "ABCD"
+    #endif
+    #if !defined(__NAKED_LITTLE_ENDIAN) && !defined(__NAKED_BIG_ENDIAN) && !defined(__NAKED_PDP_ENDIAN)
+        #if __NAKED_ENDIAN_ORDER==0x41424344UL 
+            #define __NAKED_LITTLE_ENDIAN
+        #elif __NAKED_ENDIAN_ORDER==0x44434241UL
+            #define __NAKED_BIG_ENDIAN
+        #elif __NAKED_ENDIAN_ORDER==0x42414443UL
+            #define __NAKED_PDP_ENDIAN
+        #else
+            #error "** HARDWARE ENDIANNESS NOT SUPPORTED **"
+        #endif
+    #endif
+    
+    #ifndef __NAKED_{{ endianness_tag }}
+        #error "** HARDWARE ENDIANNESS NOT SUPPORTED **"
+    #endif
+    
+    /*
+    *   Floating point types size check
+    *   the only supported sizes for now are 32 bits for float and 64 for double
+    */
+    static_assert(sizeof(float) == 4,"** THIS ARCHITECTURE DOESN'T MATCH THE EXPECTED SIZE FOR 'float' OF 4 BYTES **");
+    static_assert(sizeof(double) == 8, "** THIS ARCHITECTURE DOESN'T MATCH THE EXPECTED SIZE FOR 'double' OF 8 BYTES **");
+
+    /*
+    *   Packed macro
+    *   macro for packed structs on multiple compilers
+    */
+    #if defined(__MINGW32__)
+        #define __is_packed __attribute__((__gcc_struct__, __packed__)) // , __aligned__(1)))
+    #else
+        #define __is_packed __attribute__((__packed__)) // , __aligned__(1)))
+    #endif
+    
+    /*
+    *   Bitset setter/getter
+    *   macros for reading/writing bitsets
+    */
+    #define setBit(bitset, index, value) \
+    do { \
+        (bitset)[(index)/8] &= ~( 1 << (index) % 8); \
+        (bitset)[(index)/8] |=  ((value) << (index) % 8); \
+    } while(0);
+    #define flipBit(bitset, index) ((bitset)[(index)/8] ^= (1 << (index) % 8) )
+    #define getBit(bitset, index)  ((bitset)[(index)/8] &  (1 << (index) % 8) )
+#endif
+
+// Types
+
+typedef union {
+    uint8_t bytes[4];
+    float value;
+} float_t;
+
+typedef union {
+    uint8_t bytes[8];
+    double value;
+} double_t;
+
+// Frequencies
+
+{%- for message in messages %}
+    {%- if message.frequency != -1 %}
+#define {{ utils.to_snake_case(message.name).upper() }}_MS {{ message.frequency }}
+    {%- endif %}
+{%- endfor %}
+
+// Sizes
+
+{%- for message in messages %}
+#define {{ utils.to_snake_case(message.name).upper() }}_SIZE {{ message.size }}
+{%- endfor %}
+
+// Bitsets
+{% for bitset in bitsets -%}
+typedef uint8_t {{ utils.to_camel_case(bitset.name,"_") }}[{{ bitset.byte_size }}];
+#define {{ utils.to_snake_case(bitset.name).upper() }}_DEFAULT { {{ ", ".join(["0"] * (bitset.byte_size)) }} }
+    {%- for bits in bitset.content %}
+#define {{ utils.to_snake_case(bitset.name).upper() }}_{{ bits.item.upper() }} {{ bits.index }}
+    {%- endfor %}
+
+{% endfor -%}
+// Enums
+{% for enum in enums -%}
+typedef enum __is_packed {
+    {%- for values in enum.content %}
+    {{ enum.name.upper() }}_{{ values.item }} = {{ values.index }},
+    {%- endfor %}
+} {{ utils.to_camel_case(enum.name,"_") }};
+
+{% endfor -%}
+// Structs
+{% for message in messages -%}
+typedef struct __is_packed {
+    {%- for field in message.fields %}
+    {{ casts(field.type.name) }} {{ field.name }};
+    {%- endfor %}
+    {%- if not already_timestamp(message.fields) %}
+    uint32_t timestamp;
+    {%- endif %}
+} {{ utils.to_camel_case(message.name,"_") }}Msg;
+
+{% endfor -%}
+// Functions
+{% for message_name, message_index in messages_size.items() %}
+void serialize_{{ utils.to_camel_case(message_name,"_") }}Msg(uint8_t *data, {{ utils.to_camel_case(message_name,"_") }}Msg *msg){
+    {%- for index, fields in message_index.items() -%}
+        {%- for field in fields_serialization(index, fields, struct=True) %}
+    {{ field }}
+        {%- endfor %}
+    {%- endfor %}
+}
+
+void serialize_{{ utils.to_camel_case(message_name,"_") }}(uint8_t *data{{ parameters(messages, message_name) }}){
+    {%- for index, fields in message_index.items() -%}
+        {%- for field in fields_serialization(index, fields, struct=False) %}
+    {{ field }}
+        {%- endfor %}
+    {%- endfor %}
+}
+
+void deserialize_{{ utils.to_camel_case(message_name,"_") }}(uint8_t *data, {{ utils.to_camel_case(message_name,"_") }}Msg *msg){
+    {%- for index, fields in message_index.items() -%}
+        {%- for field in fields_deserialization(index, fields) %}
+    {{ field }}
+        {%- endfor %}
+    {%- endfor %}
+}
+{% endfor %}
+#endif
+
+#ifdef __cplusplus
+}
+#endif

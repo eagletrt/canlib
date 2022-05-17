@@ -1,0 +1,14 @@
+import {{ filename }}_pb2
+
+def protobuf2dict(id, payload):
+    match id:
+{%- for message_name, message_ids in messages.items() %}
+        case 
+    {%- for message_id in message_ids %} {{ message_id }}
+        {%- if message_id != message_ids[-1] %} |{% else %}:{% endif -%}
+    {%- endfor %}
+            message = {{ filename }}_pb2.{{ utils.to_camel_case(message_name,"_") }}()
+            message.ParseFromString(payload)
+            return {field.name: getattr(message, field.name) for field in message.DESCRIPTOR.fields}
+{% endfor %}
+    raise Exception("Unknown message id")

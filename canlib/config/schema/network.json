@@ -1,0 +1,51 @@
+{
+    "type": "object",
+    "properties": {
+        "version": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 65535
+        },
+        "messages": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "pattern": "^[A-Z][A-Z0-9_]*$"
+                    },
+                    "topic": {
+                        "type": "string",
+                        "pattern": "(?!^FIXED_IDS$)^[A-Za-z][A-Za-z0-9_]*$"
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 7
+                    },
+                    "fixed_id": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 65535
+                    },
+                    "split_senders": {
+                        "type": "boolean"
+                    }
+                },
+                "not": {
+                    "anyOf": [
+                        { "required": ["topic", "fixed_id"] },
+                        { "required": ["priority", "fixed_id"] }
+                    ]
+                },
+                "anyOf": [
+                    { "required": ["fixed_id"] },
+                    { "required": ["topic", "priority"] }
+                ],
+                "additionalProperties": true
+            }
+        }
+    },
+    "additionalProperties": true
+}
