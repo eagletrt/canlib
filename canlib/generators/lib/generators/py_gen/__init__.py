@@ -8,41 +8,34 @@ import jinja2 as j2
 from canlib import config
 from canlib.common import utils
 from canlib.common.network import Network
-from canlib.generators.lib import schema
+from canlib.generators.lib.schema import BitSet, Enum, Field, Message, Number, Schema
 
-TEMPLATE_PY = os.path.dirname(__file__) + "/template.py.j2"
-TEST_TEMPLATE_PY = os.path.dirname(__file__) + "/test_template.py.j2"
+BASE_DIR = Path(__file__).parent
+
+TEMPLATE_PY = BASE_DIR / "template.py.j2"
+TEST_TEMPLATE_PY = BASE_DIR / "test_template.py.j2"
 
 schema_msgs = {}
 
 
-def generate(
-    filename: str,
-    network: Network,
-    schema: schema.Schema,
-    output_path: Path,
-):
+def generate(filename: str, network: Network, schema: Schema, output_path: Path):
     enums, bitsets = parse_schema(schema.types, filename)
-    # frequencies = frequencies(network)
 
     utils.create_subtree(output_path)
 
-    pygenerated = generate_canconfig_include(network.can_config)
-    with open(f"{output_path}/{config.PY_CAN_CONFIG_INCLUDE}", "w+") as f:
-        print(pygenerated, file=f)
-        f.write(generate_canconfig_include(network.can_config))
+    with open(output_path / config.PY_CAN_CONFIG_INCLUDE, "w+") as file:
+        file.write(generate_canconfig_include(network.can_config))
 
-    pygenerated = generate_ids_include(network)
-    with open(f"{output_path}/{config.PY_IDS_INCLUDE}", "w+") as f:
-        print(pygenerated, file=f)
+    with open(output_path / config.PY_IDS_INCLUDE, "w+") as file:
+        file.write(generate_ids_include(network))
 
-    with open(f"{output_path}/{filename}.py", "w") as f:
-        f.write(
+    with open(output_path / f"{filename}.py", "w+") as file:
+        file.write(
             generate_py(filename, schema.messages, schema.messages_size, enums, bitsets)
         )
 
-    with open(f"{output_path}/test.py", "w") as f:
-        f.write(
+    with open(output_path / "test.py", "w+") as file:
+        file.write(
             generate_py_test(
                 filename, schema.messages, schema.messages_size, enums, bitsets
             )
@@ -66,7 +59,7 @@ def generate_py(filename, messages, messages_size, enums, bitsets):
         python_type_name=python_type_name,
         utils=utils,
         isinstance=isinstance,
-        Number=schema.Number,
+        Number=Number,
         fields_deserialization=fields_deserialization,
         fields_serialization=fields_serialization,
         already_timestamp=already_timestamp,
@@ -114,11 +107,11 @@ def parse_schema(types, prefix):
     bitsets = []
     enums = []
     for type_name, custom_type in types.items():
-        if isinstance(custom_type, schema.Enum):
+        if isinstance(custom_type, Enum):
             custom_type.name = utils.to_camel_case(f"{prefix}_{type_name}", "_")
             enums.append(custom_type)
 
-        if isinstance(custom_type, schema.BitSet):
+        if isinstance(custom_type, BitSet):
             custom_type.name = utils.to_camel_case(f"{prefix}_{type_name}", "_")
             bitsets.append(custom_type)
 
@@ -140,17 +133,17 @@ def packing_schema(name, msg):
     return schema
 
 
-def struct_schema(field: schema.Field):
-    if isinstance(field.type, schema.BitSet):
+def struct_schema(field: Field):
+    if isinstance(field.type, BitSet):
         return "B" * math.ceil(field.type.size / 8)
     else:
         return struct_format(field.type)
 
 
 def struct_format(number):
-    if isinstance(number, schema.Enum):
+    if isinstance(number, Enum):
         return "B"
-    elif isinstance(number, schema.Number):
+    elif isinstance(number, Number):
         match number.name:
             case "uint8":
                 return "B"
@@ -180,7 +173,7 @@ def struct_format(number):
                 )
 
 
-def args(message: schema.Message, variable: str):
+def args(message: Message, variable: str):
     attributes = []
     for field in message.fields:
         attributes.append(
@@ -201,7 +194,7 @@ def pack_fields(msg: dict):
         elif len(items) == 1:
             item = items[0]
             if item.shift == 0:
-                if isinstance(item.type, schema.BitSet):
+                if isinstance(item.type, BitSet):
                     for bytes in reversed(range(item.type.byte_size)):
                         fields.append(f"(int(self.{item.name},2) >> {bytes*8}) & 255")
                 else:
@@ -221,10 +214,10 @@ def random_values(fields):
     values = []
 
     for field in fields:
-        if isinstance(field.type, schema.BitSet):
+        if isinstance(field.type, BitSet):
             value = f"{random.randint(0, (2 ** (field.bit_size)-1))}"
             values.append(value)
-        elif isinstance(field.type, schema.Enum):
+        elif isinstance(field.type, Enum):
             values.append(f"{random.randint(0, (2 ** (field.bit_size-1)))}")
         elif "uint" in field.type.name:
             values.append(f"{random.randint(0, (2 ** field.bit_size) - 1)}")
@@ -266,12 +259,12 @@ def params(fields):
     return parameters
 
 
-def python_type_name(field: schema.Field):
+def python_type_name(field: Field):
     if "int" in field.type.name:
         return "int"
     elif field.type.name == "float32" or field.type.name == "float64":
         return "float"
-    elif isinstance(field.type, schema.BitSet):
+    elif isinstance(field.type, BitSet):
         return "bin"
     else:
         return field.type.name
@@ -282,7 +275,7 @@ def bitset_unpack(msg_name, msg, field, index):
     bytes = range(field.type.byte_size)
     reversed_bytes = reversed(bytes)
     for (byte, reversed_byte) in zip(bytes, reversed_bytes):
-        if isinstance(field.type, schema.BitSet):
+        if isinstance(field.type, BitSet):
             deserialized.append(
                 f'(unpack("{ custom_unpack_schema(msg_name, msg, field.name) }", data[0:{ index+field.byte_size }])[{ byte }] << { reversed_byte*8 })'
             )
@@ -294,44 +287,44 @@ def bitset_unpack(msg_name, msg, field, index):
 
 
 def fields_serialization(message, messages_size):
-    serializated_fields = []
+    serialized_fields = []
 
     if len(message.fields) != 0:
-        serializated_fields.append("data = bytearray()")
+        serialized_fields.append("data = bytearray()")
         msg = messages_size[message.name]
-        serializated_fields.append(
+        serialized_fields.append(
             f"data.extend(pack(\"{packing_schema(message.name, msg)}\", {', '.join(pack_fields(msg)) }))"
         )
-        serializated_fields.append("return data")
+        serialized_fields.append("return data")
     else:
-        serializated_fields.append("return bytearray()")
+        serialized_fields.append("return bytearray()")
 
-    return serializated_fields
+    return serialized_fields
 
 
 def fields_deserialization(message, messages_size):
-    deserializated_fields = []
+    deserialized_fields = []
 
     if len(message.fields) != 0:
         for field in message.fields:
             msg = messages_size[message.name]
             index = lookup_msg_index(message.name, field.name, messages_size)
-            if isinstance(field.type, schema.BitSet):
-                deserializated_fields.append(
+            if isinstance(field.type, BitSet):
+                deserialized_fields.append(
                     f"self.{field.name} = bin({' | '.join(bitset_unpack(message.name, msg, field, index))})"
                 )
             elif field.shift == 0:
-                deserializated_fields.append(
+                deserialized_fields.append(
                     f'self.{field.name} = {python_type_name(field)}(unpack("{custom_unpack_schema(message.name, msg, field.name)}", data[0:{index+field.byte_size}])[0])'
                 )
             else:
-                deserializated_fields.append(
+                deserialized_fields.append(
                     f'self.{field.name} = {python_type_name(field)}((unpack("{custom_unpack_schema(message.name, msg, field.name)}", data[0:{index+field.byte_size}])[0] & {field.bit_mask}) >> {field.shift})'
                 )
     else:
-        deserializated_fields.append("pass")
+        deserialized_fields.append("pass")
 
-    return deserializated_fields
+    return deserialized_fields
 
 
 def already_timestamp(fields):

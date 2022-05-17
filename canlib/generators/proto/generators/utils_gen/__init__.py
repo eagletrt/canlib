@@ -1,5 +1,6 @@
 import os
 import re
+from pathlib import Path
 
 import jinja2 as j2
 
@@ -7,24 +8,26 @@ from canlib.common import utils
 from canlib.common.network import Network
 from canlib.generators.lib.schema import BitSet, Enum, Number, Schema
 
-__UTILS_CPP_TEMPLATE_ = os.path.dirname(__file__) + "/network_utils_template.h.j2"
-__UTILS_PYTHON_TEMPLATE_ = os.path.dirname(__file__) + "/network_utils_template.py.j2"
+BASE_DIR = Path(__file__).parent
+
+UTILS_CPP_TEMPLATE_ = BASE_DIR / "network_utils_template.h.j2"
+UTILS_PYTHON_TEMPLATE_ = BASE_DIR / "network_utils_template.py.j2"
 
 
 def generate_utils(schema: Schema, network: Network, filename, utils_dir_network):
-    types, structs, messages = __parse_schema(schema, network)
+    types, structs, messages = parse_schema(schema, network)
 
     with open(f"{utils_dir_network}/cpp/{filename}_utils.h", "w") as f:
-        f.write(__generate_cpp_utils(filename, types, structs, messages))
+        f.write(generate_cpp_utils(filename, types, structs, messages))
     print(f"Generated {filename}_utils.h into {utils_dir_network}/cpp")
 
     with open(f"{utils_dir_network}/python/{filename}_utils.py", "w") as f:
-        f.write(__generate_python_utils(filename, types, structs, messages))
+        f.write(generate_python_utils(filename, messages))
     print(f"Generated {filename}_utils.py into {utils_dir_network}/python")
 
 
-def __generate_cpp_utils(filename, types, structs, messages):
-    with open(__UTILS_CPP_TEMPLATE_, "r") as f:
+def generate_cpp_utils(filename, types, structs, messages):
+    with open(UTILS_CPP_TEMPLATE_, "r") as f:
         skeleton_py = f.read()
 
     code = j2.Template(skeleton_py).render(
@@ -42,8 +45,8 @@ def __generate_cpp_utils(filename, types, structs, messages):
     return code
 
 
-def __generate_python_utils(filename, types, structs, messages):
-    with open(__UTILS_PYTHON_TEMPLATE_, "r") as f:
+def generate_python_utils(filename, messages):
+    with open(UTILS_PYTHON_TEMPLATE_, "r") as f:
         skeleton_py = f.read()
 
     code = j2.Template(skeleton_py).render(
@@ -53,7 +56,7 @@ def __generate_python_utils(filename, types, structs, messages):
     return code
 
 
-def __parse_schema(schema: Schema, network: Network):
+def parse_schema(schema: Schema, network: Network):
 
     types = schema.types
     structs = schema.structs

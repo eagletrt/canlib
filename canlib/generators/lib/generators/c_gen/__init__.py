@@ -1,4 +1,3 @@
-import os
 import random
 from pathlib import Path
 
@@ -7,7 +6,7 @@ import jinja2 as j2
 from canlib import config
 from canlib.common import utils
 from canlib.common.network import Network
-from canlib.generators.lib import schema
+from canlib.generators.lib.schema import BitSet, Enum, Number, Schema
 
 BASE_DIR = Path(__file__).parent
 
@@ -19,12 +18,7 @@ TEMPLATE_IDS_H = BASE_DIR / "ids.h.j2"
 TEMPLATE_UTILS_H = BASE_DIR / "utils.h.j2"
 
 
-def generate(
-    filename: str,
-    network: Network,
-    schema: schema.Schema,
-    output_path: str,
-):
+def generate(filename: str, network: Network, schema: Schema, output_path: str):
     """
     Generates the source files in the specified output path
 
@@ -36,27 +30,22 @@ def generate(
     enums, bitsets = parse_schema(schema.types, filename)
 
     utils.create_subtree(output_path)
+    with open(output_path / config.C_IDS_INCLUDE, "w+") as file:
+        file.write(generate_ids_include(network))
 
-    cgenerated = generate_ids_include(network)
-    with open(f"{output_path}/{config.C_IDS_INCLUDE}", "w+") as f:
-        print(cgenerated, file=f)
+    with open(output_path / config.C_UTILS_INCLUDE, "w+") as file:
+        file.write(generate_utils_include(network))
 
-    cgenerated = generate_utils_include(network)
-    with open(f"{output_path}/{config.C_UTILS_INCLUDE}", "w+") as f:
-        print(cgenerated, file=f)
+    with open(output_path / config.C_CAN_CONFIG_INCLUDE, "w+") as file:
+        file.write(generate_canconfig_include(network.can_config, network.name))
 
-    cgenerated = generate_canconfig_include(network.can_config, network.name)
-
-    with open(f"{output_path}/{config.C_CAN_CONFIG_INCLUDE}", "w+") as f:
-        print(cgenerated, file=f)
-
-    with open(f"{output_path}/{filename}.h", "w") as f:
-        f.write(
+    with open(output_path / f"{filename}.h", "w") as file:
+        file.write(
             generate_h(filename, schema.messages, schema.messages_size, enums, bitsets)
         )
 
-    with open(f"{output_path}/test.c", "w") as f:
-        f.write(generate_test_c(filename, schema.messages))
+    with open(output_path / "test.c", "w") as file:
+        file.write(generate_test_c(filename, schema.messages))
 
 
 def generate_h(filename, messages, messages_size, enums, bitsets):
@@ -124,11 +113,11 @@ def parse_schema(types, prefix):
     bitsets = []
     enums = []
     for type_name, custom_type in types.items():
-        if isinstance(custom_type, schema.Enum):
+        if isinstance(custom_type, Enum):
             custom_type.name = f"{prefix}_{type_name}"
             enums.append(custom_type)
 
-        if isinstance(custom_type, schema.BitSet):
+        if isinstance(custom_type, BitSet):
             custom_type.name = f"{prefix}_{type_name}"
             bitsets.append(custom_type)
 
@@ -138,7 +127,7 @@ def parse_schema(types, prefix):
 def printf_arguments_cast(message, name: str):
     fields = []
     for field in message.fields:
-        if not isinstance(field.type, schema.BitSet):
+        if not isinstance(field.type, BitSet):
             fields.append(
                 f"{utils.to_camel_case(message.name,'_')}_{name}.{field.name}"
             )
@@ -170,11 +159,11 @@ def random_values(fields):
     values = []
 
     for field in fields:
-        if isinstance(field.type, schema.BitSet):
+        if isinstance(field.type, BitSet):
             values.append(
                 f"{{ {', '.join([str(random.randint(0, 255)) for _ in range((field.bit_size // 8))])} }}"
             )
-        elif isinstance(field.type, schema.Enum):
+        elif isinstance(field.type, Enum):
             values.append(f"{random.randint(0, (2 ** (field.bit_size-1)))}")
         elif "uint" in field.type.name:
             values.append(f"{random.randint(0, (2 ** field.bit_size) - 1)}")
@@ -221,7 +210,7 @@ def casts(name: str):
 def printf_cast(fields):
     casts = []
     for field in fields:
-        if isinstance(field.type, schema.Number):
+        if isinstance(field.type, Number):
             match field.type.name:
                 case "float32":
                     casts.append("%f")
@@ -245,9 +234,9 @@ def printf_cast(fields):
                     casts.append("%lu")
                 case "bool":
                     casts.append("%d")
-        elif isinstance(field.type, schema.Enum):
+        elif isinstance(field.type, Enum):
             casts.append("%d")
-        elif isinstance(field.type, schema.BitSet):
+        elif isinstance(field.type, BitSet):
             casts.append(".".join(["%hhx"] * (field.bit_size // 8)))
     return casts
 
@@ -257,82 +246,80 @@ def float_deserialize(field, index):
 
 
 def fields_serialization(index, fields, struct: bool):
-    serializated_fields = []
+    serialized_fields = []
     struct_info = "msg->" if struct else ""
 
     if fields:
         if len(fields) == 1 and fields[0].bit_size >= 8:
             field = fields[0]
-            if isinstance(field.type, schema.BitSet):
+            if isinstance(field.type, BitSet):
                 for bitset_index in range(field.bit_size // 8):
-                    serializated_fields.append(
+                    serialized_fields.append(
                         f"data[{index+bitset_index}] = {struct_info}{field.name}[{bitset_index}];"
                     )
-            elif isinstance(field.type, schema.Number) and (
+            elif isinstance(field.type, Number) and (
                 field.type.name == "float32" or field.type.name == "float64"
             ):
                 for byte_index in range(field.bit_size // 8):
-                    serializated_fields.append(
+                    serialized_fields.append(
                         f"data[{index+byte_index}] = (({casts(field.type.name)}_t) {struct_info}{field.name}).bytes[{byte_index}];"
                     )
             elif field.bit_size > 8:
-                serializated_fields.append(
+                serialized_fields.append(
                     f"data[{index}] = {struct_info}{field.name} & 255;"
                 )
                 for number_index in range(1, field.bit_size // 8):
-                    serializated_fields.append(
+                    serialized_fields.append(
                         f"data[{index+number_index}] = ({struct_info}{field.name} >> {number_index*8}) & 255;"
                     )
             else:
-                serializated_fields.append(
-                    f"data[{index}] = {struct_info}{field.name};"
-                )
+                serialized_fields.append(f"data[{index}] = {struct_info}{field.name};")
         else:
-            serializated_fields.append(
+            serialized_fields.append(
                 f"data[{index}] = {' | '.join(params(fields, struct_info))};"
             )
 
-    return serializated_fields
+    return serialized_fields
 
 
 def fields_deserialization(index, fields):
-    deserializated_fields = []
+    deserialized_fields = []
 
     if fields:
         if len(fields) == 1 and fields[0].bit_size >= 8:
             field = fields[0]
-            if isinstance(field.type, schema.BitSet):
+            if isinstance(field.type, BitSet):
                 for bitset_index in range(field.bit_size // 8):
-                    deserializated_fields.append(
+                    deserialized_fields.append(
                         f"msg->{field.name}[{bitset_index}] = data[{index+bitset_index}];"
                     )
-            elif isinstance(field.type, schema.Number) and (
+            elif isinstance(field.type, Number) and (
                 field.type.name == "float32" or field.type.name == "float64"
             ):
-                deserializated_fields.append(
+                deserialized_fields.append(
                     "msg->{} = ((float_t) {}).value;".format(
                         field.name,
                         "{" + str(", ".join(float_deserialize(field, index))) + "}",
                     )
                 )
             elif field.bit_size > 8:
-                deserializated_fields.append(
+                deserialized_fields.append(
                     f"msg->{field.name} = data[{index}] | {' | '.join(convert(field, index))};"
                 )
             else:
-                deserializated_fields.append(f"msg->{field.name} = data[{index}];")
+                deserialized_fields.append(f"msg->{field.name} = data[{index}];")
         else:
             for field in fields:
                 if field.type.name != "bool":
-                    deserializated_fields.append(
+                    deserialized_fields.append(
                         f"msg->{field.name} = ({casts(field.type.name)}) ((data[{index}] & {field.bit_mask}) >> {field.shift});"
                     )
                 else:
-                    deserializated_fields.append(
+                    deserialized_fields.append(
                         f"msg->{field.name} = (data[{index}] & {field.bit_mask}) >> {field.shift};"
                     )
 
-    return deserializated_fields
+    return deserialized_fields
 
 
 def buffer_size(message_name):

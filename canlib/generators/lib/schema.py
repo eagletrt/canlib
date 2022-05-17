@@ -82,7 +82,7 @@ class Schema:
                 7: [],
             }
             indice = 0
-            inizio = 8
+            start = 8
             for field in message.fields:
 
                 if field.bit_size % 8 == 0:
@@ -91,19 +91,17 @@ class Schema:
                     if (indice % 8) + field.bit_size >= 8:
                         indice += 8 - (indice % 8)
                         field.shift = 8 - (indice % 8) - field.bit_size
-                        inizio = 8
+                        start = 8
                     else:
                         field.shift = 8 - (indice % 8) - field.bit_size
                     mask = 0
                     if isinstance(field.type, Enum) or field.type.name == "bool":
-                        for bit in reversed(range(inizio)):
+                        for bit in reversed(range(start)):
                             if bit >= field.shift:
                                 mask = mask | (1 << bit)
-                                inizio = inizio - 1
+                                start = start - 1
                         field.bit_mask = mask
 
-                # if field.bit_size > 8:
-                #     field.byte_size = math.ceil(field.bit_size / 8)
                 self.messages_size[message.name][indice // 8].append(field)
 
                 indice += field.bit_size

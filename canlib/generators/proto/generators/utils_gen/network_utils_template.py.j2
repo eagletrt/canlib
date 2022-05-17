@@ -3,7 +3,7 @@ import {{ filename }}_pb2
 def protobuf2dict(id, payload):
     match id:
 {%- for message_name, message_ids in messages.items() %}
-        case 
+        case
     {%- for message_id in message_ids %} {{ message_id }}
         {%- if message_id != message_ids[-1] %} |{% else %}:{% endif -%}
     {%- endfor %}

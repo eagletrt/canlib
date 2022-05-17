@@ -10,7 +10,7 @@ extern "C" {
 #include <assert.h>
 
 /*
-*   NAKED SHARED 
+*   NAKED SHARED
 *   Common functions, defines and checks between all the network.h files
 */
 #ifndef __NAKED_SHARED
@@ -23,7 +23,7 @@ extern "C" {
         #define __NAKED_ENDIAN_ORDER 1094861636L // "ABCD"
     #endif
     #if !defined(__NAKED_LITTLE_ENDIAN) && !defined(__NAKED_BIG_ENDIAN) && !defined(__NAKED_PDP_ENDIAN)
-        #if __NAKED_ENDIAN_ORDER==0x41424344UL 
+        #if __NAKED_ENDIAN_ORDER==0x41424344UL
             #define __NAKED_LITTLE_ENDIAN
         #elif __NAKED_ENDIAN_ORDER==0x44434241UL
             #define __NAKED_BIG_ENDIAN
@@ -33,11 +33,11 @@ extern "C" {
             #error "** HARDWARE ENDIANNESS NOT SUPPORTED **"
         #endif
     #endif
-    
+
     #ifndef __NAKED_{{ endianness_tag }}
         #error "** HARDWARE ENDIANNESS NOT SUPPORTED **"
     #endif
-    
+
     /*
     *   Floating point types size check
     *   the only supported sizes for now are 32 bits for float and 64 for double
@@ -54,7 +54,7 @@ extern "C" {
     #else
         #define __is_packed __attribute__((__packed__)) // , __aligned__(1)))
     #endif
-    
+
     /*
     *   Bitset setter/getter
     *   macros for reading/writing bitsets

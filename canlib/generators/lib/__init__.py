@@ -1,6 +1,5 @@
 from pathlib import Path
 
-from canlib import config
 from canlib.common import utils
 from canlib.generators.lib.generators import c_gen, py_gen
 from canlib.generators.lib.schema import Schema
