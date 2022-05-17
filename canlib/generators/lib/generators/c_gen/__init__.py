@@ -7,7 +7,7 @@ import jinja2 as j2
 from canlib import config
 from canlib.common import utils
 from canlib.common.network import Network
-from canlib.generators.sources import schema
+from canlib.generators.lib import schema
 
 BASE_DIR = Path(__file__).parent
 

@@ -4,8 +4,8 @@ from pathlib import Path
 from shutil import which
 
 from canlib.common import utils
-from canlib.generators.protobuf.compile_schema import compile_schema
-from canlib.generators.protobuf.generators.utils_gen import generate_utils
+from canlib.generators.proto.compile_schema import compile_schema
+from canlib.generators.proto.generators.utils_gen import generate_utils
 
 
 def get_protoc_executable():

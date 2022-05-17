@@ -5,7 +5,7 @@ import jinja2 as j2
 
 from canlib.common import utils
 from canlib.common.network import Network
-from canlib.generators.sources.schema import BitSet, Enum, Number, Schema
+from canlib.generators.lib.schema import BitSet, Enum, Number, Schema
 
 __UTILS_CPP_TEMPLATE_ = os.path.dirname(__file__) + "/network_utils_template.h.j2"
 __UTILS_PYTHON_TEMPLATE_ = os.path.dirname(__file__) + "/network_utils_template.py.j2"

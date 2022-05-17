@@ -4,4 +4,8 @@ clean:
 	rm -rf protobuf
 	rm -rf sheets
 
-.PHONY: clean
+format:
+	black .
+	isort .
+
+.PHONY: clean format

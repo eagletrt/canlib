@@ -3,7 +3,7 @@ import os
 import jinja2 as j2
 
 from canlib.common import utils
-from canlib.generators.protobuf.schema import BitSet, Enum, Schema
+from canlib.generators.proto.schema import BitSet, Enum, Schema
 
 __PROTO_TEMPLATE_ = os.path.dirname(__file__) + "/template.proto.j2"
 

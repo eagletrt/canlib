@@ -1,7 +1,7 @@
 import re
 
-from canlib.generators.protobuf.generators.proto_gen import generate
-from canlib.generators.protobuf.schema import Schema
+from canlib.generators.proto.generators.proto_gen import generate
+from canlib.generators.proto.schema import Schema
 
 
 def compile_schema(network, output_path):
