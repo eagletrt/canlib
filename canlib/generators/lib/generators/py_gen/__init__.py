@@ -12,14 +12,14 @@ from canlib.generators.lib.schema import BitSet, Enum, Field, Message, Number, S
 
 BASE_DIR = Path(__file__).parent
 
-TEMPLATE_PY = BASE_DIR / "template.py.j2"
-TEST_TEMPLATE_PY = BASE_DIR / "test_template.py.j2"
+TEMPLATE_PY = j2.Template((BASE_DIR / "template.py.j2").read_text())
+TEST_TEMPLATE_PY = j2.Template((BASE_DIR / "test_template.py.j2").read_text())
 
 schema_msgs = {}
 
 
-def generate(filename: str, network: Network, schema: Schema, output_path: Path):
-    enums, bitsets = parse_schema(schema.types, filename)
+def generate(network: Network, schema: Schema, output_path: Path):
+    enums, bitsets = parse_schema(schema.types, network.name)
 
     utils.create_subtree(output_path)
 
@@ -29,25 +29,19 @@ def generate(filename: str, network: Network, schema: Schema, output_path: Path)
     with open(output_path / config.PY_IDS_INCLUDE, "w+") as file:
         file.write(generate_ids_include(network))
 
-    with open(output_path / f"{filename}.py", "w+") as file:
+    with open(output_path / f"{network.name}.py", "w+") as file:
         file.write(
-            generate_py(filename, schema.messages, schema.messages_size, enums, bitsets)
+            generate_py(network.name, schema.messages, schema.messages_size, enums, bitsets)
         )
 
     with open(output_path / "test.py", "w+") as file:
-        file.write(
-            generate_py_test(
-                filename, schema.messages, schema.messages_size, enums, bitsets
-            )
-        )
+        file.write(generate_py_test(network.name, schema.messages))
 
 
 def generate_py(filename, messages, messages_size, enums, bitsets):
     endianness_tag = "<" if config.IS_LITTLE_ENDIAN else ">"
-    with open(TEMPLATE_PY, "r") as f:
-        skeleton_py = f.read()
 
-    code = j2.Template(skeleton_py).render(
+    code = TEMPLATE_PY.render(
         filename=filename,
         enums=enums,
         bitsets=bitsets,
@@ -68,12 +62,8 @@ def generate_py(filename, messages, messages_size, enums, bitsets):
     return code
 
 
-def generate_py_test(filename, messages, messages_size, enums, bitsets):
-    endianness_tag = "<" if config.IS_LITTLE_ENDIAN else ">"
-    with open(TEST_TEMPLATE_PY, "r") as f:
-        skeleton_py = f.read()
-
-    code = j2.Template(skeleton_py).render(
+def generate_py_test(filename, messages):
+    code = TEST_TEMPLATE_PY.render(
         filename=filename,
         messages=messages,
         len=len,

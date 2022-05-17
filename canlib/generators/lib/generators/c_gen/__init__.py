@@ -10,15 +10,14 @@ from canlib.generators.lib.schema import BitSet, Enum, Number, Schema
 
 BASE_DIR = Path(__file__).parent
 
-TEMPLATE_C = BASE_DIR / "template.c.j2"
-TEMPLATE_H = BASE_DIR / "template.h.j2"
-TEST_TEMPLATE_C = BASE_DIR / "test_template.c.j2"
+TEMPLATE_H = j2.Template((BASE_DIR / "template.h.j2").read_text())
+TEST_TEMPLATE_C = j2.Template((BASE_DIR / "test_template.c.j2").read_text())
 
-TEMPLATE_IDS_H = BASE_DIR / "ids.h.j2"
-TEMPLATE_UTILS_H = BASE_DIR / "utils.h.j2"
+TEMPLATE_IDS_H = j2.Template((BASE_DIR / "ids.h.j2").read_text())
+TEMPLATE_UTILS_H = j2.Template((BASE_DIR / "utils.h.j2").read_text())
 
 
-def generate(filename: str, network: Network, schema: Schema, output_path: str):
+def generate(network: Network, schema: Schema, output_path: Path):
     """
     Generates the source files in the specified output path
 
@@ -27,25 +26,27 @@ def generate(filename: str, network: Network, schema: Schema, output_path: str):
         output_path:
         filename:
     """
-    enums, bitsets = parse_schema(schema.types, filename)
+    enums, bitsets = parse_schema(schema.types, network.name)
 
     utils.create_subtree(output_path)
     with open(output_path / config.C_IDS_INCLUDE, "w+") as file:
         file.write(generate_ids_include(network))
 
     with open(output_path / config.C_UTILS_INCLUDE, "w+") as file:
-        file.write(generate_utils_include(network))
+        file.write(generate_utils_include(network, schema))
 
     with open(output_path / config.C_CAN_CONFIG_INCLUDE, "w+") as file:
         file.write(generate_canconfig_include(network.can_config, network.name))
 
-    with open(output_path / f"{filename}.h", "w") as file:
+    with open(output_path / f"{network.name}.h", "w") as file:
         file.write(
-            generate_h(filename, schema.messages, schema.messages_size, enums, bitsets)
+            generate_h(
+                network.name, schema.messages, schema.messages_size, enums, bitsets
+            )
         )
 
     with open(output_path / "test.c", "w") as file:
-        file.write(generate_test_c(filename, schema.messages))
+        file.write(generate_test_c(network.name, schema.messages))
 
 
 def generate_h(filename, messages, messages_size, enums, bitsets):
@@ -54,10 +55,7 @@ def generate_h(filename, messages, messages_size, enums, bitsets):
     """
     endianness_tag = "LITTLE_ENDIAN" if config.IS_LITTLE_ENDIAN else "BIG_ENDIAN"
 
-    with open(TEMPLATE_H, "r") as f:
-        template_h = f.read()
-
-    code = j2.Template(template_h).render(
+    code = TEMPLATE_H.render(
         bitsets=bitsets,
         enums=enums,
         messages=messages,
@@ -79,10 +77,7 @@ def generate_test_c(filename, messages):
     """
     Generates C source file for tests
     """
-    with open(TEST_TEMPLATE_C, "r") as f:
-        test_template_c = f.read()
-
-    code = j2.Template(test_template_c).render(
+    code = TEST_TEMPLATE_C.render(
         messages=messages,
         filename=filename,
         len=len,
@@ -344,17 +339,10 @@ def parameters(messages, message_name):
 
 
 def generate_ids_include(network: Network):
-    with open(TEMPLATE_IDS_H, "r") as f:
-        ids_h = f.read()
-
-    code = j2.Template(ids_h).render(network=network)
-
-    return code
+    return TEMPLATE_IDS_H.render(network=network)
 
 
-def generate_utils_include(network: Network):
-    with open(TEMPLATE_UTILS_H, "r") as f:
-        utils_h = f.read()
+def generate_utils_include(network: Network, schema: Schema):
 
     # Calculate maximum message name length
     msg_name_max_length = 1  # Minimum message name length must be at least 1
@@ -364,8 +352,14 @@ def generate_utils_include(network: Network):
         ):  # 1 is added because of C strings (last char is '\0')
             msg_name_max_length = len(message_name) + 1
 
-    code = j2.Template(utils_h).render(
-        network=network, msg_name_max_length=msg_name_max_length
+    code = TEMPLATE_UTILS_H.render(
+        network=network,
+        schema=schema,
+        msg_name_max_length=msg_name_max_length,
+        utils=utils,
+        len=len,
+        printf_cast=printf_cast,
+        enumerate=enumerate,
     )
 
     return code

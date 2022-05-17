@@ -14,14 +14,13 @@ def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):
         output_dir_network = output_dir / network.name
 
         schema = Schema(network)
-        file_name = network.name
 
         output_path_py = output_dir_network / "py"
-        py_gen.generate(file_name, network, schema, output_path_py)
+        py_gen.generate(network, schema, output_path_py)
         print(f"Generated Python code into {output_path_py}")
 
         output_path_c = output_dir_network / "c"
-        c_gen.generate(file_name, network, schema, output_path_c)
+        c_gen.generate(network, schema, output_path_c)
         print(f"Generated C code into {output_path_c}")
 
         print(f"Generating includes for network {network.name}")
