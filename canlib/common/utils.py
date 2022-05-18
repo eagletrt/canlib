@@ -1,7 +1,7 @@
 import errno
 import json
-import os
 from pathlib import Path
+from typing import List
 
 from jsonschema import validate
 
@@ -20,7 +20,7 @@ def load_json(path: Path, validation_schema_path=None) -> dict:
     return data
 
 
-def create_subtree(path: Path):
+def create_subtree(path: Path) -> None:
     if not path.exists():
         try:
             path.mkdir(parents=True)
@@ -29,7 +29,7 @@ def create_subtree(path: Path):
                 raise exception
 
 
-def load_networks(networks_dir: Path, ids_dir: Path = None):
+def load_networks(networks_dir: Path, ids_dir: Path = None) -> List[Network]:
     networks = []
 
     for directory in networks_dir.iterdir():
@@ -55,9 +55,9 @@ def load_networks(networks_dir: Path, ids_dir: Path = None):
 DEFAULT_DELIMITER = " "
 
 
-def to_camel_case(string: str, delimiter=DEFAULT_DELIMITER):
+def to_camel_case(string: str, delimiter=DEFAULT_DELIMITER) -> str:
     return "".join([x.capitalize() for x in string.split(delimiter)])
 
 
-def to_snake_case(string: str, delimiter=DEFAULT_DELIMITER):
+def to_snake_case(string: str, delimiter=DEFAULT_DELIMITER) -> str:
     return "".join([x.lower() for x in string.split(delimiter)])

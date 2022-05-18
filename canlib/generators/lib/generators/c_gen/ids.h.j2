@@ -10,7 +10,7 @@
     {%- if topic_id is not sameas None %}
 #define TOPIC_{{ topic_name }}_FILTER 0b{{ "{0:>011b}".format(topic_id) }}
     {%- endif %}
-    {%- for message_name, message_contents in topic_messages.items() %}
+    {%- for message_contents in topic_messages.values() %}
         {%- if "description" in message_contents %}
 /*
             {%- for line in message_contents["description"].split("\n") %}
@@ -18,7 +18,10 @@
             {%- endfor %}
 */
         {%- endif %}
-#define {{ network.name.upper() }}_ID_{{ message_name }} 0b{{ "{0:>011b}".format(message_contents["id"]) }}
+
+        {%- for message_sub_name, message_id in message_contents["id"].items() %}
+#define {{ network.name.upper() }}_ID_{{ message_sub_name }} 0b{{ "{0:>011b}".format(message_id) }}
+        {%- endfor %}
     {%- endfor -%}
 {% endfor %}
 

@@ -15,8 +15,6 @@ BASE_DIR = Path(__file__).parent
 TEMPLATE_PY = j2.Template((BASE_DIR / "template.py.j2").read_text())
 TEST_TEMPLATE_PY = j2.Template((BASE_DIR / "test_template.py.j2").read_text())
 
-schema_msgs = {}
-
 
 def generate(network: Network, schema: Schema, output_path: Path):
     enums, bitsets = parse_schema(schema.types, network.name)
@@ -72,17 +70,14 @@ def parse_schema(types, prefix):
     return enums, bitsets
 
 
-def packing_schema(name, msg):
-    global schema_msgs
-    schema_msgs[name] = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: []}
+def packing_schema(msg: dict):
     schema = "<" if config.IS_LITTLE_ENDIAN else ">"
-    for index, items in msg.items():
+    for items in msg.values():
         if len(items) > 1:
             schema += "B"
         elif len(items) == 1:
             item = items[0]
             schema += struct_schema(item)
-        schema_msgs[name][index] = schema
 
     return schema
 
@@ -122,9 +117,7 @@ def struct_format(number):
             case "bool":
                 return "B"
             case _:
-                raise NotImplementedError(
-                    f"Can't convert {number.name} to format for python's pack unpack functions"
-                )
+                raise ValueError(f"{number.name} type unsupported")
 
 
 def args(message: Message, variable: str):
@@ -247,7 +240,7 @@ def fields_serialization(message, messages_size):
         serialized_fields.append("data = bytearray()")
         msg = messages_size[message.name]
         serialized_fields.append(
-            f"data.extend(pack(\"{packing_schema(message.name, msg)}\", {', '.join(pack_fields(msg)) }))"
+            f"data.extend(pack(\"{packing_schema(msg)}\", {', '.join(pack_fields(msg)) }))"
         )
         serialized_fields.append("return data")
     else:
@@ -335,13 +328,14 @@ def generate_ids_include(network: Network):
         if topic_id is not None:
             header += f"TOPIC_{topic_name}_MASK = 0b{0b00000011111:>011b}\n"
             header += f"TOPIC_{topic_name}_FILTER = 0b{topic_id:>011b}\n"
-        for message_name, message_contents in topic_messages.items():
-            if "description" in message_contents:
-                header += '"""\n'
-                for line in message_contents["description"].split("\n"):
-                    header += f"{line}\n"
-                header += '"""\n'
-            header += f"{network.name.upper()}_ID_{message_name} = 0b{message_contents['id']:>011b}\n"
+        for message_contents in topic_messages.values():
+            for message_sub_name, message_id in message_contents["id"].items():
+                if "description" in message_contents:
+                    header += '"""\n'
+                    for line in message_contents["description"].split("\n"):
+                        header += f"{line}\n"
+                    header += '"""\n'
+                header += f"{network.name.upper()}_ID_{message_sub_name} = 0b{message_id:>011b}\n"
         header += "\n"
 
     return header

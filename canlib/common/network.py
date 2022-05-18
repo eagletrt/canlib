@@ -40,17 +40,7 @@ class Network:
                 message["topic"] = "FIXED_IDS"
 
             message_name = message.pop("name")
-            split_senders = message.get("split_senders", False)
-
-            if split_senders:
-                sending_devices = message["sending"]
-                for device_id, device_name in enumerate(sending_devices):
-                    split_message = message.copy()
-                    split_message["sending"] = [device_name]
-                    generated_split_message_name = f"{message_name}_{device_id}"
-                    messages[generated_split_message_name] = split_message
-            else:
-                messages[message_name] = message
+            messages[message_name] = message
 
         can_config = utils.load_json(can_config_path, CAN_CONFIG_VALIDATION_SCHEMA)
 
@@ -64,30 +54,26 @@ class Network:
 
                 messages_ids = sorted(topic_contents["messages"].items())
                 for message_name, message_contents in messages_ids:
-                    messages[message_name]["id"] = message_contents["id"]
+                    messages[message_name]["id"] = message_contents
 
         return cls(name, version, messages, types, topics, can_config)
 
-    def get_messages_by_topic(self, topic):
-        messages = {}
-        for name, contents in self.messages.items():
-            if contents["topic"] != topic:
-                continue
-            messages[name] = contents
-
-        return messages
+    def get_messages_by_topic(self, topic) -> dict:
+        return {
+            name: contents
+            for name, contents in self.messages.items()
+            if contents["topic"] == topic
+        }
 
     def get_messages_with_fixed_id(self) -> dict:
-        messages = {}
-        for name, contents in self.messages.items():
-            if "fixed_id" in contents:
-                messages[name] = contents
+        return {
+            name: contents
+            for name, contents in self.messages.items()
+            if "fixed_id" in contents
+        }
 
-        return messages
-
-    def get_reserved_ids(self) -> dict:
-        ids = {}
-        for name, contents in self.get_messages_with_fixed_id().items():
-            ids[name] = contents["fixed_id"]
-
-        return ids
+    def get_reserved_ids(self) -> set:
+        return {
+            contents["fixed_id"]
+            for contents in self.get_messages_with_fixed_id().values()
+        }

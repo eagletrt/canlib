@@ -4,13 +4,13 @@ from struct import pack, unpack
 # Bitsets
 
 {% for bitset in bitsets -%}
-class {{ bitset.name }}({{ "IntFlag" if len(bitset.superclass) == 0 }}):
+class {{ bitset.name }}({{ "IntFlag" if len(bitset.parent) == 0 }}):
     {%- if len(bitset.content) != 0 %}
         {%- for bits in bitset.content %}
     {{ bits.item }} = {{ 2**bits.index }}
         {%- endfor %}
-    {%- elif len(bitset.superclass) != 0 %}
-        {%- for field in bitset.superclass %}
+    {%- elif len(bitset.parent) != 0 %}
+        {%- for field in bitset.parent %}
     {{ field.lower() }} = {{ utils.to_camel_case('{}_{}'.format(filename, field),'_') }}(0)
         {%- endfor %}
     {%- else %}

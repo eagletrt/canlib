@@ -5,15 +5,11 @@
 #define CAN_MESSAGE_NAME_MAX_LENGTH {{ msg_name_max_length }}
 
 void {{ network.name }}_msgname_from_id(uint32_t msg_id, char *buffer) {
-    /*
-    *       Returns a string containing the name of the message having the specified id
-    *           Parameters:
-    *               msg_id: the id of the message
-    *               buffer: the pre allocated buffer where the message name will be returned
-    */
     switch (msg_id) {
-{%- for message_name, message in network.messages.items() %}
-        case {{ message.id }}: strcpy(buffer, "{{ message_name }}"); break;
+{%- for message_contents in network.messages.values() %}
+{%- for message_name, message_id in message_contents["id"].items() %}
+        case {{ message_id }}: strcpy(buffer, "{{ message_name }}"); break;
+{%- endfor %}
 {%- endfor %}
         default:
             strcpy(buffer, ""); // Unknown message

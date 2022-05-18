@@ -48,7 +48,6 @@
             "name": "BOARD_STATUS",
             "topic": "STATUS",
             "priority": 1,
-            "split_senders": true,
             "sending": [
                 "CELLBOARD0",
                 "CELLBOARD1",
@@ -68,7 +67,6 @@
             "name": "TEMPERATURES",
             "topic": "TEMPERATURE_INFO",
             "priority": 2,
-            "split_senders": true,
             "sending": [
                 "CELLBOARD0",
                 "CELLBOARD1",
@@ -93,7 +91,6 @@
             "name": "VOLTAGES",
             "topic": "VOLTAGE_INFO",
             "priority": 5,
-            "split_senders": true,
             "sending": [
                 "CELLBOARD0",
                 "CELLBOARD1",
