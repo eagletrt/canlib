@@ -8,6 +8,7 @@ extern "C" {
 #include <stdbool.h>
 #include <stdint.h>
 #include <assert.h>
+#include <stdio.h>
 
 /*
 *   NAKED SHARED
@@ -150,6 +151,78 @@ void deserialize_{{ utils.to_camel_case(message_name,"_") }}(uint8_t *data, {{ u
     {%- endfor %}
 }
 {% endfor %}
+
+{% for message in messages %}
+void {{utils.to_camel_case(message.name,"_")}}ToString({{utils.to_camel_case(message.name,"_")}}Msg* in, char* buff, char separator)
+{
+  sprintf(buff,
+    "
+  {%-for i, field in enumerate(printf_cast(message.fields))-%}
+  {{field-}}%c
+  {%-endfor-%}
+  \n",{{" "}}
+  {%-for i, field in enumerate(message.fields)-%}
+  {%-if not i == len(message.fields)-1 %}
+    in->{{field.name}}, separator,{{" "}}
+  {%-else %}
+    in->{{field.name}}, separator
+  {%-endif-%}
+  {%-endfor %}
+  );
+}
+void {{utils.to_camel_case(message.name,"_")}}Header({{utils.to_camel_case(message.name,"_")}}Msg* in, char* buff, char separator)
+{
+  sprintf(buff,
+   "
+  {%-for i, field in enumerate(message.fields)-%}
+  {%-if not i == len(message.fields)-1 -%}
+  {{field.name}}%c
+  {%-else-%}
+  {{field.name}}%c
+  {%-endif-%}
+  {%-endfor-%}
+  \n"
+    {%for i, field in enumerate(message.fields)-%}
+    ,separator
+    {%endfor %});
+}
+void {{utils.to_camel_case(message.name,"_")}}ToStringFile({{utils.to_camel_case(message.name,"_")}}Msg* in, FILE* buff, char separator)
+{
+  fprintf(buff,
+    "
+  {%-for i, field in enumerate(printf_cast(message.fields))-%}
+  {{field-}}%c
+  {%-endfor-%}
+  \n",{{" "}}
+  {%-for i, field in enumerate(message.fields)-%}
+  {%-if not i == len(message.fields)-1 %}
+    in->{{field.name}}, separator,{{" "}}
+  {%-else %}
+    in->{{field.name}}, separator
+  {%-endif-%}
+  {%-endfor %}
+  );
+}
+void {{utils.to_camel_case(message.name,"_")}}HeaderFile({{utils.to_camel_case(message.name,"_")}}Msg* in, FILE* buff, char separator)
+{
+  fprintf(buff,
+    "
+    {%-for i, field in enumerate(message.fields)-%}
+      {%-if not i == len(message.fields)-1 -%}
+        {{field.name}}%c
+      {%-else-%}
+        {{field.name}}%c
+      {%-endif-%}
+    {%-endfor-%}
+    \n"
+    {%for i, field in enumerate(message.fields)-%}
+    ,separator
+    {%endfor-%}
+  );
+}
+
+{% endfor %}
+
 #endif
 
 #ifdef __cplusplus

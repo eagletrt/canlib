@@ -36,7 +36,7 @@ def generate(network: Network, schema: Schema, output_path: Path):
         file.write(generate_utils_include(network, schema))
 
     with open(output_path / config.C_CAN_CONFIG_INCLUDE, "w+") as file:
-        file.write(generate_canconfig_include(network.can_config, network.name))
+        file.write(generate_can_config_include(network.can_config, network.name))
 
     with open(output_path / f"{network.name}.h", "w") as file:
         file.write(
@@ -47,48 +47,6 @@ def generate(network: Network, schema: Schema, output_path: Path):
 
     with open(output_path / "test.c", "w") as file:
         file.write(generate_test_c(network.name, schema.messages))
-
-
-def generate_h(filename, messages, messages_size, enums, bitsets):
-    """
-    Generates C header file
-    """
-    endianness_tag = "LITTLE_ENDIAN" if config.IS_LITTLE_ENDIAN else "BIG_ENDIAN"
-
-    code = TEMPLATE_H.render(
-        bitsets=bitsets,
-        enums=enums,
-        messages=messages,
-        messages_size=messages_size,
-        endianness_tag=endianness_tag,
-        filename=filename,
-        casts=casts,
-        fields_serialization=fields_serialization,
-        fields_deserialization=fields_deserialization,
-        utils=utils,
-        already_timestamp=already_timestamp,
-        parameters=parameters,
-    )
-
-    return code
-
-
-def generate_test_c(filename, messages):
-    """
-    Generates C source file for tests
-    """
-    code = TEST_TEMPLATE_C.render(
-        messages=messages,
-        filename=filename,
-        len=len,
-        printf_cast=printf_cast,
-        printf_arguments_cast=printf_arguments_cast,
-        random_values=random_values,
-        utils=utils,
-        buffer_size=buffer_size,
-    )
-
-    return code
 
 
 def parse_schema(types, prefix):
@@ -338,6 +296,51 @@ def parameters(messages, message_name):
         return ""
 
 
+def generate_h(filename, messages, messages_size, enums, bitsets):
+    """
+    Generates C header file
+    """
+    endianness_tag = "LITTLE_ENDIAN" if config.IS_LITTLE_ENDIAN else "BIG_ENDIAN"
+
+    code = TEMPLATE_H.render(
+        bitsets=bitsets,
+        enums=enums,
+        messages=messages,
+        messages_size=messages_size,
+        endianness_tag=endianness_tag,
+        filename=filename,
+        printf_cast=printf_cast,
+        enumerate=enumerate,
+        len=len,
+        casts=casts,
+        fields_serialization=fields_serialization,
+        fields_deserialization=fields_deserialization,
+        utils=utils,
+        already_timestamp=already_timestamp,
+        parameters=parameters,
+    )
+
+    return code
+
+
+def generate_test_c(filename, messages):
+    """
+    Generates C source file for tests
+    """
+    code = TEST_TEMPLATE_C.render(
+        messages=messages,
+        filename=filename,
+        len=len,
+        printf_cast=printf_cast,
+        printf_arguments_cast=printf_arguments_cast,
+        random_values=random_values,
+        utils=utils,
+        buffer_size=buffer_size,
+    )
+
+    return code
+
+
 def generate_ids_include(network: Network):
     return TEMPLATE_IDS_H.render(network=network)
 
@@ -365,15 +368,15 @@ def generate_utils_include(network: Network, schema: Schema):
     return code
 
 
-def generate_canconfig_include(canconfig, namespace):
-    if not canconfig:
+def generate_can_config_include(can_config, namespace):
+    if not can_config:
         return ""
-    options = canconfig["options"]
-    version = canconfig["version"]
+    options = can_config["options"]
+    version = can_config["version"]
     header = ""
-    header += f"#ifndef {namespace}_CANCONFIG_H\n"
-    header += f"#define {namespace}_CANCONFIG_H\n\n"
-    header += f"#define {namespace}_CANCONFIG_VERSION {version}f\n\n"
+    header += f"#ifndef {namespace}_CAN_CONFIG_H\n"
+    header += f"#define {namespace}_CAN_CONFIG_H\n\n"
+    header += f"#define {namespace}_CAN_CONFIG_VERSION {version}f\n\n"
     for k, v in options.items():
         if isinstance(v, dict):
             header += "\n"

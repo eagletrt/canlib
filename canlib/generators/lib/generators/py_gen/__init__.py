@@ -24,56 +24,20 @@ def generate(network: Network, schema: Schema, output_path: Path):
     utils.create_subtree(output_path)
 
     with open(output_path / config.PY_CAN_CONFIG_INCLUDE, "w+") as file:
-        file.write(generate_canconfig_include(network.can_config))
+        file.write(generate_can_config_include(network.can_config))
 
     with open(output_path / config.PY_IDS_INCLUDE, "w+") as file:
         file.write(generate_ids_include(network))
 
     with open(output_path / f"{network.name}.py", "w+") as file:
         file.write(
-            generate_py(network.name, schema.messages, schema.messages_size, enums, bitsets)
+            generate_py(
+                network.name, schema.messages, schema.messages_size, enums, bitsets
+            )
         )
 
     with open(output_path / "test.py", "w+") as file:
         file.write(generate_py_test(network.name, schema.messages))
-
-
-def generate_py(filename, messages, messages_size, enums, bitsets):
-    endianness_tag = "<" if config.IS_LITTLE_ENDIAN else ">"
-
-    code = TEMPLATE_PY.render(
-        filename=filename,
-        enums=enums,
-        bitsets=bitsets,
-        messages=messages,
-        messages_size=messages_size,
-        len=len,
-        endianness_tag=endianness_tag,
-        params=params,
-        python_type_name=python_type_name,
-        utils=utils,
-        isinstance=isinstance,
-        Number=Number,
-        fields_deserialization=fields_deserialization,
-        fields_serialization=fields_serialization,
-        already_timestamp=already_timestamp,
-    )
-
-    return code
-
-
-def generate_py_test(filename, messages):
-    code = TEST_TEMPLATE_PY.render(
-        filename=filename,
-        messages=messages,
-        len=len,
-        params=params,
-        random_values=random_values,
-        args=args,
-        utils=utils,
-    )
-
-    return code
 
 
 """
@@ -324,6 +288,44 @@ def already_timestamp(fields):
         return False
 
 
+def generate_py(filename, messages, messages_size, enums, bitsets):
+    endianness_tag = "<" if config.IS_LITTLE_ENDIAN else ">"
+
+    code = TEMPLATE_PY.render(
+        filename=filename,
+        enums=enums,
+        bitsets=bitsets,
+        messages=messages,
+        messages_size=messages_size,
+        len=len,
+        endianness_tag=endianness_tag,
+        params=params,
+        python_type_name=python_type_name,
+        utils=utils,
+        isinstance=isinstance,
+        Number=Number,
+        fields_deserialization=fields_deserialization,
+        fields_serialization=fields_serialization,
+        already_timestamp=already_timestamp,
+    )
+
+    return code
+
+
+def generate_py_test(filename, messages):
+    code = TEST_TEMPLATE_PY.render(
+        filename=filename,
+        messages=messages,
+        len=len,
+        params=params,
+        random_values=random_values,
+        args=args,
+        utils=utils,
+    )
+
+    return code
+
+
 def generate_ids_include(network: Network):
     header = ""
     header += "version = {0}\n\n".format(network.version)
@@ -345,13 +347,13 @@ def generate_ids_include(network: Network):
     return header
 
 
-def generate_canconfig_include(canconfig):
-    if not canconfig:
+def generate_can_config_include(can_config):
+    if not can_config:
         return ""
-    options = canconfig["options"]
-    version = canconfig["version"]
+    options = can_config["options"]
+    version = can_config["version"]
     header = ""
-    header += "CANCONFIG_VERSION = {0}\n\n".format(version)
+    header += "CAN_CONFIG_VERSION = {0}\n\n".format(version)
     for k, v in options.items():
         if isinstance(v, dict):
             header += "\n"
