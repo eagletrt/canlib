@@ -53,8 +53,8 @@ class Network:
                 topics[topic_name] = topic_contents.get("id")
 
                 messages_ids = sorted(topic_contents["messages"].items())
-                for message_name, message_contents in messages_ids:
-                    messages[message_name]["id"] = message_contents
+                for message_name, message in messages_ids:
+                    messages[message_name]["id"] = message
 
         return cls(name, version, messages, types, topics, can_config)
 

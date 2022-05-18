@@ -96,15 +96,17 @@ typedef union {
 {%- endfor %}
 
 // Bitsets
+
 {% for bitset in bitsets -%}
 typedef uint8_t {{ utils.to_camel_case(bitset.name,"_") }}[{{ bitset.byte_size }}];
 #define {{ utils.to_snake_case(bitset.name).upper() }}_DEFAULT { {{ ", ".join(["0"] * (bitset.byte_size)) }} }
     {%- for bits in bitset.content %}
 #define {{ utils.to_snake_case(bitset.name).upper() }}_{{ bits.item.upper() }} {{ bits.index }}
     {%- endfor %}
+{%- endfor %}
 
-{% endfor -%}
 // Enums
+
 {% for enum in enums -%}
 typedef enum __is_packed {
     {%- for values in enum.content %}
@@ -126,25 +128,25 @@ typedef struct __is_packed {
 
 {% endfor -%}
 // Functions
-{% for message_name, message_index in messages_size.items() %}
-void serialize_{{ utils.to_camel_case(message_name,"_") }}Msg(uint8_t *data, {{ utils.to_camel_case(message_name,"_") }}Msg *msg){
-    {%- for index, fields in message_index.items() -%}
+{% for message in messages %}
+void serialize_{{ utils.to_camel_case(message.name,"_") }}Msg(uint8_t *data, {{ utils.to_camel_case(message.name,"_") }}Msg *msg){
+    {%- for index, fields in message.partitioned_size.items() -%}
         {%- for field in fields_serialization(index, fields, struct=True) %}
     {{ field }}
         {%- endfor %}
     {%- endfor %}
 }
 
-void serialize_{{ utils.to_camel_case(message_name,"_") }}(uint8_t *data{{ parameters(messages, message_name) }}){
-    {%- for index, fields in message_index.items() -%}
+void serialize_{{ utils.to_camel_case(message.name,"_") }}(uint8_t *data{{ parameters(messages, message.name) }}){
+    {%- for index, fields in message.partitioned_size.items() -%}
         {%- for field in fields_serialization(index, fields, struct=False) %}
     {{ field }}
         {%- endfor %}
     {%- endfor %}
 }
 
-void deserialize_{{ utils.to_camel_case(message_name,"_") }}(uint8_t *data, {{ utils.to_camel_case(message_name,"_") }}Msg *msg){
-    {%- for index, fields in message_index.items() -%}
+void deserialize_{{ utils.to_camel_case(message.name,"_") }}(uint8_t *data, {{ utils.to_camel_case(message.name,"_") }}Msg *msg){
+    {%- for index, fields in message.partitioned_size.items() -%}
         {%- for field in fields_deserialization(index, fields) %}
     {{ field }}
         {%- endfor %}

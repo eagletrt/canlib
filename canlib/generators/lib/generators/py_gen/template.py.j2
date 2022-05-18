@@ -48,12 +48,12 @@ class {{ utils.to_camel_case(message.name,"_") }}Msg:
     {%- endif %}
 
     def serialize(self):
-    {%- for field in fields_serialization(message, messages_size) %}
+    {%- for field in fields_serialization(message) %}
         {{ field }}
     {%- endfor %}
 
     def deserialize(self, data):
-    {%- for field in fields_deserialization(message, messages_size) %}
+    {%- for field in fields_deserialization(message) %}
         {{ field }}
     {%- endfor %}
 

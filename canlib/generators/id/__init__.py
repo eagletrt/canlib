@@ -61,15 +61,15 @@ def generate_messages_id(topic_messages, topic: int, blacklist=set()):
     generator = IdGenerator(topic, blacklist)
 
     message_ids = {}
-    for message_name, message_contents in topic_messages.items():
-        message_priority = message_contents["priority"]
+    for message_name, message in topic_messages.items():
+        message_priority = message["priority"]
 
         if message_priority > MAX_PRIORITY:
             raise Exception(f'"{message_name}" out of range (0-{MAX_PRIORITY})')
 
-        if len(message_contents["sending"]) > 1:
+        if len(message["sending"]) > 1:
             multiple_ids = {}
-            for device_name in message_contents["sending"]:
+            for device_name in message["sending"]:
                 generated_message_name = f"{message_name}_{device_name}"
                 multiple_ids[generated_message_name] = generator.next(message_priority)
             message_ids[message_name] = multiple_ids

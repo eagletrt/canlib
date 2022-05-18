@@ -57,15 +57,12 @@ def generate_python_utils(filename, messages):
 
 
 def parse_schema(schema: Schema, network: Network):
-
     types = schema.types
     structs = schema.structs
     messages = {}
-    for message_name, message_contents in network.messages.items():
+    for message_name, message in network.messages.items():
         if not message_name in messages:
             messages[message_name] = []
-            messages[message_name].append(message_contents["id"])
-        else:
-            messages[message_name].append(message_contents["id"])
+        messages[message_name].append(message["id"])
 
     return types, structs, messages

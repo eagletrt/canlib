@@ -17,8 +17,6 @@ TEST_TEMPLATE_PY = j2.Template((BASE_DIR / "test_template.py.j2").read_text())
 
 
 def generate(network: Network, schema: Schema, output_path: Path):
-    enums, bitsets = parse_schema(schema.types, network.name)
-
     utils.create_subtree(output_path)
 
     with open(output_path / config.PY_CAN_CONFIG_INCLUDE, "w+") as file:
@@ -28,11 +26,7 @@ def generate(network: Network, schema: Schema, output_path: Path):
         file.write(generate_ids_include(network))
 
     with open(output_path / f"{network.name}.py", "w+") as file:
-        file.write(
-            generate_py(
-                network.name, schema.messages, schema.messages_size, enums, bitsets
-            )
-        )
+        file.write(generate_py(network.name, schema))
 
     with open(output_path / "test.py", "w+") as file:
         file.write(generate_py_test(network.name, schema.messages))
@@ -41,33 +35,6 @@ def generate(network: Network, schema: Schema, output_path: Path):
 """
     Utility functions used for template rendering
 """
-
-
-def parse_schema(types, prefix):
-    """
-    Parses generic schema to a more Python friendly one
-
-    The actions performed on the schema are the following:
-    - Renaming structs and enums to camel case
-
-    Args:
-        schema:
-
-    Returns:
-        The structs and other custom types distilled from the schema
-    """
-    bitsets = []
-    enums = []
-    for type_name, custom_type in types.items():
-        if isinstance(custom_type, Enum):
-            custom_type.name = utils.to_camel_case(f"{prefix}_{type_name}", "_")
-            enums.append(custom_type)
-
-        if isinstance(custom_type, BitSet):
-            custom_type.name = utils.to_camel_case(f"{prefix}_{type_name}", "_")
-            bitsets.append(custom_type)
-
-    return enums, bitsets
 
 
 def packing_schema(msg: dict):
@@ -151,9 +118,9 @@ def pack_fields(msg: dict):
     return fields
 
 
-def lookup_msg_index(msg_name, field_name, messages_size):
+def lookup_msg_index(field_name, messages_size):
     for index in range(8):
-        if field_name in [field.name for field in messages_size[msg_name][index]]:
+        if field_name in [field.name for field in messages_size[index]]:
             return index
 
 
@@ -233,12 +200,12 @@ def bitset_unpack(msg_name, msg, field, index):
     return deserialized
 
 
-def fields_serialization(message, messages_size):
+def fields_serialization(message):
     serialized_fields = []
 
     if len(message.fields) != 0:
         serialized_fields.append("data = bytearray()")
-        msg = messages_size[message.name]
+        msg = message.partitioned_size
         serialized_fields.append(
             f"data.extend(pack(\"{packing_schema(msg)}\", {', '.join(pack_fields(msg)) }))"
         )
@@ -249,13 +216,13 @@ def fields_serialization(message, messages_size):
     return serialized_fields
 
 
-def fields_deserialization(message, messages_size):
+def fields_deserialization(message):
     deserialized_fields = []
 
     if len(message.fields) != 0:
         for field in message.fields:
-            msg = messages_size[message.name]
-            index = lookup_msg_index(message.name, field.name, messages_size)
+            msg = message.partitioned_size
+            index = lookup_msg_index(field.name, message.partitioned_size)
             if isinstance(field.type, BitSet):
                 deserialized_fields.append(
                     f"self.{field.name} = bin({' | '.join(bitset_unpack(message.name, msg, field, index))})"
@@ -281,15 +248,14 @@ def already_timestamp(fields):
         return False
 
 
-def generate_py(filename, messages, messages_size, enums, bitsets):
+def generate_py(filename: str, schema: Schema) -> str:
     endianness_tag = "<" if config.IS_LITTLE_ENDIAN else ">"
 
     code = TEMPLATE_PY.render(
         filename=filename,
-        enums=enums,
-        bitsets=bitsets,
-        messages=messages,
-        messages_size=messages_size,
+        enums=schema.get_enums(),
+        bitsets=schema.get_bit_sets(),
+        messages=schema.messages,
         len=len,
         endianness_tag=endianness_tag,
         params=params,
@@ -328,11 +294,11 @@ def generate_ids_include(network: Network):
         if topic_id is not None:
             header += f"TOPIC_{topic_name}_MASK = 0b{0b00000011111:>011b}\n"
             header += f"TOPIC_{topic_name}_FILTER = 0b{topic_id:>011b}\n"
-        for message_contents in topic_messages.values():
-            for message_sub_name, message_id in message_contents["id"].items():
-                if "description" in message_contents:
+        for message in topic_messages.values():
+            for message_sub_name, message_id in message["id"].items():
+                if "description" in message:
                     header += '"""\n'
-                    for line in message_contents["description"].split("\n"):
+                    for line in message["description"].split("\n"):
                         header += f"{line}\n"
                     header += '"""\n'
                 header += f"{network.name.upper()}_ID_{message_sub_name} = 0b{message_id:>011b}\n"

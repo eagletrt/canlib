@@ -21,14 +21,14 @@ def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):
         writer = csv.writer(out)
         writer.writerow(columns)
         for network in networks:
-            for message_name, message_contents in network.messages.items():
+            for message_name, message in network.messages.items():
                 # Cleaning message dict and adding network column
-                message_contents.pop("fixed_id", None)
-                message_contents["name"] = message_name
-                message_contents["network"] = network.name
+                message.pop("fixed_id", None)
+                message["name"] = message_name
+                message["network"] = network.name
 
                 cols = [""] * len(columns)
-                for key, value in message_contents.items():
+                for key, value in message.items():
                     if key not in columns:
                         continue
                     cols[columns.index(key)] = re_clean.sub("", str(value))

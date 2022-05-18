@@ -6,8 +6,8 @@
 
 void {{ network.name }}_msgname_from_id(uint32_t msg_id, char *buffer) {
     switch (msg_id) {
-{%- for message_contents in network.messages.values() %}
-{%- for message_name, message_id in message_contents["id"].items() %}
+{%- for message in network.messages.values() %}
+{%- for message_name, message_id in message["id"].items() %}
         case {{ message_id }}: strcpy(buffer, "{{ message_name }}"); break;
 {%- endfor %}
 {%- endfor %}

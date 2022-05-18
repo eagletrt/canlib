@@ -1,7 +1,7 @@
 {
     "version": 1.2,
     "types": {
-        "errors": {
+        "Errors": {
             "type": "bitset",
             "items": [
                 "CAN_COMM",
@@ -14,11 +14,11 @@
                 "TEMP_COMM_5"
             ]
         },
-        "balancing_status": {
+        "BalancingStatus": {
             "type": "enum",
             "items": ["OFF", "DISCHARGE"]
         },
-        "balancing_cells": {
+        "BalancingCells": {
             "type": "bitset",
             "items": [
                 "CELL0",
@@ -59,8 +59,8 @@
             "receiving": ["MAINBOARD"],
             "description": "Cellboard's status",
             "contents": {
-                "errors": "errors",
-                "balancing_status": "balancing_status"
+                "errors": "Errors",
+                "balancing_status": "BalancingStatus"
             }
         },
         {
@@ -124,7 +124,7 @@
             "description": "Set discharging status for cells",
             "contents": {
                 "board_index": "uint8",
-                "cells": "balancing_cells"
+                "cells": "BalancingCells"
             }
         },
         {

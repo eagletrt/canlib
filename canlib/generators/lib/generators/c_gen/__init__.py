@@ -18,16 +18,6 @@ TEMPLATE_UTILS_H = j2.Template((BASE_DIR / "utils.h.j2").read_text())
 
 
 def generate(network: Network, schema: Schema, output_path: Path):
-    """
-    Generates the source files in the specified output path
-
-    Args:
-        schema:
-        output_path:
-        filename:
-    """
-    enums, bitsets = parse_schema(schema.types, network.name)
-
     utils.create_subtree(output_path)
     with open(output_path / config.C_IDS_INCLUDE, "w+") as file:
         file.write(generate_ids_include(network))
@@ -39,39 +29,22 @@ def generate(network: Network, schema: Schema, output_path: Path):
         file.write(generate_can_config_include(network.can_config, network.name))
 
     with open(output_path / f"{network.name}.h", "w") as file:
-        file.write(
-            generate_h(
-                network.name, schema.messages, schema.messages_size, enums, bitsets
-            )
-        )
+        file.write(generate_h(network.name, schema))
 
     with open(output_path / "test.c", "w") as file:
         file.write(generate_test_c(network.name, schema.messages))
 
 
 def parse_schema(types, prefix):
-    """
-    Parses generic schema to a more C friendly one
-
-    The actions performed on the schema are the following:
-    - Prefixing structs and enums' name to avoid conflicts with other libraries
-
-    Args:
-        schema:
-        prefix:
-
-    Returns:
-        The structs and other custom types distilled from the schema
-    """
     bitsets = []
     enums = []
     for type_name, custom_type in types.items():
         if isinstance(custom_type, Enum):
-            custom_type.name = f"{prefix}_{type_name}"
+            custom_type.name = utils.to_camel_case(f"{prefix}_{type_name}", "_")
             enums.append(custom_type)
 
         if isinstance(custom_type, BitSet):
-            custom_type.name = f"{prefix}_{type_name}"
+            custom_type.name = utils.to_camel_case(f"{prefix}_{type_name}", "_")
             bitsets.append(custom_type)
 
     return enums, bitsets
@@ -296,17 +269,16 @@ def parameters(messages, message_name):
         return ""
 
 
-def generate_h(filename, messages, messages_size, enums, bitsets):
+def generate_h(filename: str, schema: Schema) -> str:
     """
     Generates C header file
     """
     endianness_tag = "LITTLE_ENDIAN" if config.IS_LITTLE_ENDIAN else "BIG_ENDIAN"
 
     code = TEMPLATE_H.render(
-        bitsets=bitsets,
-        enums=enums,
-        messages=messages,
-        messages_size=messages_size,
+        bitsets=schema.get_bit_sets(),
+        enums=schema.get_enums(),
+        messages=schema.messages,
         endianness_tag=endianness_tag,
         filename=filename,
         printf_cast=printf_cast,
@@ -350,9 +322,8 @@ def generate_utils_include(network: Network, schema: Schema):
     # Calculate maximum message name length
     msg_name_max_length = 1  # Minimum message name length must be at least 1
     for message_name, _ in network.messages.items():
-        if (
-            len(message_name) + 1 > msg_name_max_length
-        ):  # 1 is added because of C strings (last char is '\0')
+        if len(message_name) + 1 > msg_name_max_length:
+            # 1 is added because of C strings (last char is '\0')
             msg_name_max_length = len(message_name) + 1
 
     code = TEMPLATE_UTILS_H.render(

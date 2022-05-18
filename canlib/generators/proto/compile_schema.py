@@ -21,11 +21,9 @@ def generate_schema_from_network(network):
     schema = {"types": {}, "structs": {}}
     for topic_name, _ in network.topics.items():
         schema["types"] = network.types
-        for message_name, message_contents in network.get_messages_by_topic(
-            topic_name
-        ).items():
+        for message_name, message in network.get_messages_by_topic(topic_name).items():
             struct = {}
-            for field_name, field in message_contents["contents"].items():
+            for field_name, field in message["contents"].items():
                 if isinstance(field, list):
                     if ":" in field_name:  # Named enum
                         enum_name = field_name.split(":")[0].strip().title()
