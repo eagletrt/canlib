@@ -1,0 +1,86 @@
+#ifndef {{ network.name }}_NETWORK_H
+#define {{ network.name }}_NETWORK_H
+
+#include <stdbool.h>
+#include <assert.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdio.h>
+
+#ifndef __NETWORK_SHARED
+#define __NETWORK_SHARED
+
+static_assert(sizeof(float) == 4, "sizeof(float) != 4 BYTES");
+static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
+
+#if defined(__MINGW32__)
+#define __is_packed __attribute__((__gcc_struct__, __packed__)) // , __aligned__(1)))
+#else
+#define __is_packed __attribute__((__packed__)) // , __aligned__(1)))
+#endif
+
+#endif // __NETWORK_SHARED
+
+#define {{ network.name }}_int8 int8_t
+#define {{ network.name }}_uint8 uint8_t
+#define {{ network.name }}_int16 int16_t
+#define {{ network.name }}_uint16 uint16_t
+#define {{ network.name }}_int32 int32_t
+#define {{ network.name }}_uint32 uint32_t
+#define {{ network.name }}_int64 int64_t
+#define {{ network.name }}_uint64 uint64_t
+#define {{ network.name }}_float float
+#define {{ network.name }}_double double
+#define {{ network.name }}_bool bool
+
+// Frequencies
+{% for message in schema.messages %}
+#define {{ network.name }}_{{ message.name }}_FREQUENCY {{ message.frequency }}
+{%- endfor %}
+
+// Sizes
+{% for message in schema.messages %}
+#define {{ network.name }}_{{ message.name }}_SIZE {{ message.size }}
+{%- endfor %}
+
+// Bitsets
+{% for bit_set in schema.bit_sets %}
+typedef uint8_t {{ network.name }}_{{ bit_set.name }}[{{ bit_set.byte_size }}];
+#define {{ network.name }}_{{ bit_set.name }}_DEFAULT { {{ ", ".join(["0"] * bit_set.byte_size) }} }
+{%- for name in bit_set.content %}
+#define {{ network.name }}_{{ bit_set.name }}_{{ name }} {{ loop.index }}
+{%- endfor %}
+{% endfor %}
+
+// Enums
+{% for enum in schema.enums %}
+typedef enum __is_packed {
+    {%- for name in enum.content %}
+    {{ enum.name }}_{{ name }} = {{ loop.index }},
+    {%- endfor %}
+} {{ network.name }}_{{ enum.name }};
+{% endfor %}
+
+// Structs
+{% for message in schema.messages %}
+typedef struct __is_packed {
+    {%- for field in message.fields %}
+    {{ network.name }}_{{ field.type.name }} {{ field.name }};
+    {%- endfor %}
+} {{ network.name }}_{{ message.name }}_MSG;
+{% endfor %}
+
+// Utils
+
+void {{ network.name }}_message_name_from_id(uint16_t id, char *buffer) {
+    switch (id) {
+{%- for message in network.messages.values() %}
+{%- for message_name, message_id in message["id"].items() %}
+        case {{ message_id }}: strcpy(buffer, "{{ message_name }}"); break;
+{%- endfor %}
+{%- endfor %}
+        default: strcpy(buffer, ""); // Unknown message
+    }
+}
+
+#endif // {{ network.name }}_NETWORK_H

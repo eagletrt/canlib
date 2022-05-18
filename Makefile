@@ -7,5 +7,6 @@ clean:
 format:
 	black .
 	isort .
+	djlint --reformat .
 
 .PHONY: clean format

@@ -91,7 +91,7 @@ def generate_topics_id(network: Network):
 
 def generate_fixed_ids(network: Network):
     return {
-        name: {"id": content["fixed_id"]}
+        name: {name: content["fixed_id"]}
         for name, content in network.get_messages_with_fixed_id().items()
     }
 

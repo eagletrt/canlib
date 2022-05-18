@@ -3,61 +3,59 @@
 extern "C" {
 #include "../../../../naked_generator/{{ filename }}/c/{{ filename }}.h"
 }
-
 #define BITSET_VALUE(bitset, size) \
-    bitset_value=0; \
-    current_value=0; \
-    for(short i = 0; i < size*8; i++){ \
-        current_value += getBit(bitset, i); \
-        if(i%8 == 7){ \
-            short shift_amount = i/8; \
-            current_value <<= 8*shift_amount; \
-            bitset_value += current_value; \
-            current_value = 0; \
-        } \
-    }
-
+bitset_value=0; \
+current_value=0; \
+for(short i = 0; i < size*8; i++){ \
+current_value += getBit(bitset, i); \
+if(i%8 == 7){ \
+short shift_amount = i/8; \
+current_value <<= 8*shift_amount; \
+bitset_value += current_value; \
+current_value = 0; \
+} \
+}
 std::string {{ filename }}_naked2protobuf(uint32_t id, uint8_t* payload){
-    uint64_t bitset_value, current_value;
-
-    switch(id) {
+uint64_t bitset_value, current_value;
+switch(id) {
 {%+ for message_name, message_ids in messages.items() %}
-        {% for message_id in message_ids %}case {{ message_id }}: {% endfor -%}
-        {
-    {%- set camel_case_name = utils.to_camel_case(message_name,"_") %}
-    {%- if structs[message_name].fields %}
-            {{ utils.to_camel_case(filename,"_") }}{{ camel_case_name }}Msg* {{ filename }}_{{ message_name.lower() }}_d = ({{ utils.to_camel_case(filename,"_") }}{{ camel_case_name }}Msg*)malloc({{ filename.upper() }}_{{ message_name }}_SIZE);
-            deserialize_{{ utils.to_camel_case(filename,"_") }}{{ camel_case_name }}(payload, {{ filename }}_{{ message_name.lower() }}_d);
-    {% endif%}
-            {{ filename }}::{{ camel_case_name }} {{ filename }}_{{ message_name.lower() }}_p;
-    {%- if structs[message_name].fields %}
-        {%- for field in structs[message_name].fields %}
-            {%- set snake_case_name = utils.to_snake_case(field.name) %}
-            {%- if isinstance(field.type, BitSet) %}
-            BITSET_VALUE({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}, sizeof({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}))
-            {{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name -}}
-                (bitset_value);
-            {%- elif isinstance(field.type, Enum) %}
-            {{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name -}}
-                (static_cast<{{ filename }}::{{ utils.to_camel_case(field.type.proto_type,"_") }}>({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}));
-            {%- elif isinstance(field.type, Number) %}
-            {{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name -}}
-                (static_cast<{{ field.type.proto_type }}
-            {%- if "int" in field.type.proto_type %}_t{% endif -%}
-                >({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}));
-            {%- else %}
-                {{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name }}({{ filename }}_{{ message_name.lower() }}_d->{{ field_name }});
-            {%- endif %}
-        {%- endfor %}
-
-            free({{ filename }}_{{ message_name.lower() }}_d);
-    {%- endif %}
-
-            std::string serialized;
-            {{ filename }}_{{ message_name.lower() }}_p.SerializeToString(&serialized);
-            return serialized;
-        }
+{% for message_id in message_ids %}
+case {{ message_id }}:
+{% endfor -%}
+{
+{%- set camel_case_name = utils.to_camel_case(message_name,"_") %}
+{%- if structs[message_name].fields %}
+{{ utils.to_camel_case(filename,"_") }}{{ camel_case_name }}Msg* {{ filename }}_{{ message_name.lower() }}_d = ({{ utils.to_camel_case(filename,"_") }}{{ camel_case_name }}Msg*)malloc({{ filename.upper() }}_{{ message_name }}_SIZE);
+deserialize_{{ utils.to_camel_case(filename,"_") }}{{ camel_case_name }}(payload, {{ filename }}_{{ message_name.lower() }}_d);
+{% endif %}
+{{ filename }}::{{ camel_case_name }} {{ filename }}_{{ message_name.lower() }}_p;
+{%- if structs[message_name].fields %}
+{%- for field in structs[message_name].fields %}
+{%- set snake_case_name = utils.to_snake_case(field.name) %}
+{%- if isinstance(field.type, BitSet) %}
+BITSET_VALUE({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}, sizeof({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}))
+{{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name -}}
+(bitset_value);
+{%- elif isinstance(field.type, Enum) %}
+{{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name -}}
+(static_cast<{{ filename }}::{{ utils.to_camel_case(field.type.proto_type,"_") }}>({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}));
+{%- elif isinstance(field.type, Number) %}
+{{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name -}}
+(static_cast<{{ field.type.proto_type }}
+{%- if "int" in field.type.proto_type %}_t
+{% endif -%}
+>({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}));
+{%- else %}
+{{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name }}({{ filename }}_{{ message_name.lower() }}_d->{{ field_name }});
+{%- endif %}
+{%- endfor %}
+free({{ filename }}_{{ message_name.lower() }}_d);
+{%- endif %}
+std::string serialized;
+{{ filename }}_{{ message_name.lower() }}_p.SerializeToString(&serialized);
+return serialized;
+}
 {% endfor %}
-    }
-    throw std::runtime_error("Unknown message id");
+}
+throw std::runtime_error("Unknown message id");
 }

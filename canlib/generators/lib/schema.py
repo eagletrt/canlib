@@ -1,5 +1,5 @@
 import math
-import re
+from typing import List
 
 from canlib.common.network import Network
 
@@ -29,33 +29,27 @@ class Schema:
     def __init__(self, network: Network):
         self.messages = []
         self.types = {}
+        self.bit_sets = []
+        self.enums = []
 
-        for custom_type_name, custom_type_content in network.types.items():
-            if custom_type_content["type"] == "bitset":
-                type = BitSet(custom_type_name, custom_type_content)
-                self.types[custom_type_name] = type
-            elif custom_type_content["type"] == "enum":
-                type = Enum(custom_type_name, custom_type_content["items"])
-                self.types[custom_type_name] = type
-            else:
-                raise ValueError(f"Unknown type {custom_type_content['type']}")
+        for name, definition in network.types.items():
+            if definition["type"] == "bitset":
+                type = BitSet(name, definition)
+                self.types[name] = type
+                self.bit_sets.append(type)
+            elif definition["type"] == "enum":
+                type = Enum(name, definition["items"])
+                self.types[name] = type
+                self.enums.append(type)
 
-        for topic_name in network.topics.keys():
-            messages = network.get_messages_by_topic(topic_name)
-            for message_name, message in messages.items():
-                self.messages.append(
-                    Message(
-                        message_name,
-                        message,
-                        self.types,
-                    )
+        for message_name, message in network.messages.items():
+            self.messages.append(
+                Message(
+                    message_name,
+                    message,
+                    self.types,
                 )
-
-    def get_enums(self):
-        return [type for type in self.types.values() if isinstance(type, Enum)]
-
-    def get_bit_sets(self):
-        return [type for type in self.types.values() if isinstance(type, BitSet)]
+            )
 
 
 class Message:
@@ -63,17 +57,7 @@ class Message:
         self.name = name
         self.fields = []
         self.frequency = message.get("frequency", -1)
-
-        self.partitioned_size = {
-            0: [],
-            1: [],
-            2: [],
-            3: [],
-            4: [],
-            5: [],
-            6: [],
-            7: [],
-        }
+        self.alignment = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: []}
 
         fields = []
         for name, type in message["contents"].items():
@@ -102,7 +86,7 @@ class Message:
                             start = start - 1
                     field.bit_mask = mask
 
-            self.partitioned_size[index // 8].append(field)
+            self.alignment[index // 8].append(field)
 
             index += field.bit_size
 
@@ -120,45 +104,27 @@ class Field:
 
         self.bit_size = self.type.bit_size
         self.byte_size = math.ceil(self.bit_size / 8)
+
         self.shift = None
         self.bit_mask = None
 
 
 class BitSet:
-    def __init__(self, name, field_content):
+    def __init__(self, name, content):
         self.name = name
-        self.content = []
-
-        if "items" in field_content:
-            self.content = [
-                Item(field, index) for index, field in enumerate(field_content["items"])
-            ]
-            self.size = len(field_content["items"])
-        elif "size" in field_content:
-            self.size = field_content["size"]
-        else:
-            raise Exception("Invalid bitset format")
+        self.content = content.get("items", [])
+        self.size = content.get("size", len(self.content))
 
         self.bit_size = math.ceil(self.size / 8) * 8
         self.byte_size = max(self.bit_size // 8, 1)
         self.parent = []
-        if "contents" in field_content:
-            for bitset in field_content["contents"]:
-                self.parent.append(str(bitset))
+
+        for bitset in content.get("contents", []):
+            self.parent.append(str(bitset))
 
 
 class Enum:
-    def __init__(self, name, field_content):
+    def __init__(self, name: str, content: List[str]):
         self.name = name
-        self.content = []
-
-        for index, enum_item in enumerate(field_content):
-            self.content.append(Item(enum_item, index))
-
+        self.content = content
         self.bit_size = math.ceil(math.log2(len(self.content)))
-
-
-class Item:
-    def __init__(self, item, index):
-        self.item = item
-        self.index = index

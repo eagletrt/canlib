@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from canlib.common import utils
-from canlib.generators.lib.generators import c_gen, py_gen
+from canlib.generators.lib import c, python
 from canlib.generators.lib.schema import Schema
 
 
@@ -15,13 +15,12 @@ def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):
 
         schema = Schema(network)
 
-        output_path_py = output_dir_network / "py"
-        py_gen.generate(network, schema, output_path_py)
-        print(f"Generated Python code into {output_path_py}")
+        output_path_python = output_dir_network / "python"
+        utils.create_subtree(output_path_python)
+        python.generate(network, schema, output_path_python)
+        print(f"Generated Python code into {output_path_python}")
 
         output_path_c = output_dir_network / "c"
-        c_gen.generate(network, schema, output_path_c)
+        utils.create_subtree(output_path_c)
+        c.generate(network, schema, output_path_c)
         print(f"Generated C code into {output_path_c}")
-
-        print(f"Generating includes for network {network.name}")
-        utils.create_subtree(output_dir_network)

@@ -1,26 +1,25 @@
 syntax = "proto3";
-
 package {{ filename }};
 {% for enum_name, enum_content in enums.items() %}
 enum {{ utils.to_camel_case(enum_name+"_type","_") }} {
-    {%- for enum_item in enum_content.values %}
-  {{ enum_name.upper()+"_"+enum_item.name.upper() }} = {{ enum_item.index }};
-    {%- endfor %}
+{%- for enum_item in enum_content.values %}
+{{ enum_name.upper()+"_"+enum_item.name.upper() }} = {{ enum_item.index }};
+{%- endfor %}
 }
 {% endfor -%}
 {%- for struct_name, struct_content in structs.items() %}
 message {{ utils.to_camel_case(struct_name,"_") }} {
-    {%- for field in struct_content.fields %}
-      {%- if isinstance(field.type, Enum) %}
-  {{ utils.to_camel_case(field.type.proto_type,"_") }} {{ field.name }} = {{ field.index }};
-      {%- else %}
-  {{ field.type.proto_type }} {{ field.name }} = {{ field.index }};
-      {%- endif %}
-    {%- endfor %}
+{%- for field in struct_content.fields %}
+{%- if isinstance(field.type, Enum) %}
+{{ utils.to_camel_case(field.type.proto_type,"_") }} {{ field.name }} = {{ field.index }};
+{%- else %}
+{{ field.type.proto_type }} {{ field.name }} = {{ field.index }};
+{%- endif %}
+{%- endfor %}
 }
 {% endfor %}
 message {{ utils.to_camel_case(filename,"_") }}Fenice {
 {%- for index,(struct_name, struct_content) in enumerate(structs.items()) %}
-  repeated {{ utils.to_camel_case(struct_name,"_") }} {{ struct_name.lower() }} = {{ index+1 }};
+repeated {{ utils.to_camel_case(struct_name,"_") }} {{ struct_name.lower() }} = {{ index+1 }};
 {%- endfor %}
 }
