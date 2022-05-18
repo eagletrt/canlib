@@ -1,11 +1,12 @@
 #ifndef {{ network.name }}_NETWORK_H
 #define {{ network.name }}_NETWORK_H
 
-#include <stdfloat.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <memory.h>
 #include <stdio.h>
 
 #ifndef CANLIB_ASSERTS
@@ -44,8 +45,8 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define {{ network.name }}_uint32 uint32_t
 #define {{ network.name }}_int64 int64_t
 #define {{ network.name }}_uint64 uint64_t
-#define {{ network.name }}_float32 float32
-#define {{ network.name }}_float64 float64
+#define {{ network.name }}_float32 float
+#define {{ network.name }}_float64 double
 #define {{ network.name }}_bool bool
 
 typedef union {
@@ -178,5 +179,80 @@ void {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer) {
 {% endif -%}
 }
 {% endfor %}
+
+// Other utils
+
+void {{ network.name }}_fields_from_id(uint16_t message_id, FILE *buffer) {
+    switch (message_id) {
+{%- for message_name, message_contents in network.messages.items() %}
+{%- for message_id in message_contents["id"].values() %}
+    case {{ message_id }}:
+        {{ network.name }}_fields_file_{{ message_name }}(buffer);
+        break;
+{%- endfor %}
+{%- endfor %}
+    }
+}
+
+void {{ network.name }}_string_from_id(uint16_t message_id, void* message, FILE *buffer) {
+    switch (message_id) {
+{%- for message_name, message_contents in network.messages.items() %}
+{%- for message_id in message_contents["id"].values() %}
+        case {{ message_id }}:
+            {{ network.name }}_to_string_file_{{ message_name }}(({{ network.name }}_message_{{ message_name }}*) message, buffer);
+            break;
+{%- endfor %}
+{%- endfor %}
+    }
+}
+
+void {{ network.name }}_deserialize_from_id(uint16_t message_id, uint8_t* data, void* message) {
+    switch (message_id) {
+{%- for message_name, message_contents in network.messages.items() %}
+{%- for message_id in message_contents["id"].values() %}
+        case {{ message_id }}:
+            {{ network.name }}_deserialize_{{ message_name }}(({{ network.name }}_message_{{ message_name }}*) message, data);
+            break;
+{%- endfor %}
+{%- endfor %}
+    }
+}
+
+bool {{ network.name }}_is_message_id(uint16_t message_id) {
+    switch (message_id) {
+{%- for message_name, message_contents in network.messages.items() %}
+{%- for message_id in message_contents["id"].values() %}
+        case {{ message_id }}:
+            return true;
+{%- endfor %}
+{%- endfor %}
+    }
+    return false;
+}
+
+#define {{ network.name }}_NUMBER_OF_DEVICES {{ network.get_message_count() }}
+
+typedef struct __CANLIB_PACKED {
+    uint16_t id;
+    void* message;
+} {{ network.name }}_devices[{{ network.name }}_NUMBER_OF_DEVICES];
+
+void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
+{%- for message_name, message_contents in network.messages.items() %}
+{% set outer_loop = loop %}
+{%- for message_id in message_contents["id"].values() %}
+    (*map)[{{ outer_loop.index0 + loop.index0 }}].id = {{ message_id }};
+    (*map)[{{ outer_loop.index0 + loop.index0 }}].message = (void*) malloc(sizeof({{ network.name }}_message_{{ message_name }}));
+{%- endfor %}
+{%- endfor %}
+}
+
+void* {{ network.name }}_message_from_id(uint16_t message_id, {{ network.name }}_devices* map) {
+    for(int index = 0; index < {{ network.name }}_NUMBER_OF_DEVICES; index++) {
+        if ((*map)[index].id == message_id)
+            return (*map)[index].message;
+    }
+    return NULL;
+}
 
 #endif // {{ network.name }}_NETWORK_H

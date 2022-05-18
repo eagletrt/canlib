@@ -83,3 +83,9 @@ class Network:
             max(len(name) for name in message["id"].keys())
             for message in self.messages.values()
         )
+
+    def get_message_count(self):
+        return sum(
+            len(message["id"])
+            for message in self.messages.values()
+        )
