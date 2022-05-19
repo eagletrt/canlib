@@ -5,23 +5,24 @@ from canlib.common.network import Network
 
 
 class Number:
-    def __init__(self, name, bit_size):
+    def __init__(self, name: str, bit_size: int, format_string: str):
         self.name = name
         self.bit_size = bit_size
+        self.format_string = format_string
 
 
 NUMBER_TYPES = {
-    "bool": Number("bool", 1),
-    "int8": Number("int8", 8),
-    "uint8": Number("uint8", 8),
-    "int16": Number("int16", 16),
-    "uint16": Number("uint16", 16),
-    "int32": Number("int32", 32),
-    "uint32": Number("uint32", 32),
-    "int64": Number("int64", 64),
-    "uint64": Number("uint64", 64),
-    "float32": Number("float32", 32),
-    "float64": Number("float64", 64),
+    "bool": Number("bool", 1, "%f"),
+    "int8": Number("int8", 8, "%lf"),
+    "uint8": Number("uint8", 8, "%hhd"),
+    "int16": Number("int16", 16, "%hd"),
+    "uint16": Number("uint16", 16, "%d"),
+    "int32": Number("int32", 32, "%ld"),
+    "uint32": Number("uint32", 32, "%hhu"),
+    "int64": Number("int64", 64, "%hu"),
+    "uint64": Number("uint64", 64, "%u"),
+    "float32": Number("float32", 32, "%lu"),
+    "float64": Number("float64", 64, "%d"),
 }
 
 
@@ -38,7 +39,7 @@ class Schema:
                 self.types[name] = type
                 self.bit_sets.append(type)
             elif definition["type"] == "enum":
-                type = Enum(name, definition["items"])
+                type = Enum(name, definition)
                 self.types[name] = type
                 self.enums.append(type)
 
@@ -109,22 +110,24 @@ class Field:
         self.bit_mask = None
 
 
-class BitSet:
-    def __init__(self, name, content):
+class Enum:
+    def __init__(self, name: str, definition: dict):
         self.name = name
-        self.content = content.get("items", [])
-        self.size = content.get("size", len(self.content))
+        self.items = definition.get("items", [])
+        self.bit_size = math.ceil(math.log2(len(self.items)))
+        self.format_string = "%d"
+
+
+class BitSet:
+    def __init__(self, name: str, definition: dict):
+        self.name = name
+        self.items = definition.get("items", [])
+        self.size = definition.get("size", len(self.items))
 
         self.bit_size = math.ceil(self.size / 8) * 8
         self.byte_size = max(self.bit_size // 8, 1)
-        self.parent = []
+        self.format_string = ".".join(["%hhx"] * (self.bit_size // 8))
+        self.parents = []
 
-        for bitset in content.get("contents", []):
-            self.parent.append(str(bitset))
-
-
-class Enum:
-    def __init__(self, name: str, content: List[str]):
-        self.name = name
-        self.content = content
-        self.bit_size = math.ceil(math.log2(len(self.content)))
+        for bitset in definition.get("parents", []):
+            self.parents.append(str(bitset))

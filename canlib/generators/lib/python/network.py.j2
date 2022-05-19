@@ -1,0 +1,30 @@
+from enum import IntEnum, IntFlag
+from struct import pack, unpack
+
+# Bitsets
+
+{% for bit_set in schema.bit_sets -%}
+class {{ network.name }}_{{ bit_set.name }}({{ "IntFlag" if bit_set.parents }}):
+{%- if bit_set.items %}
+{%- for name in bit_set.items %}
+    {{ name }} = {{ 2**loop.index }}
+{%- endfor %}
+{%- elif bit_set.parents %}
+{%- for field in bit_set.parents %}
+    {{ field }} = {{ network.name }}_{{ field }}(0)
+{%- endfor %}
+{%- else %}
+    pass
+{%- endif %}
+
+{% endfor -%}
+
+# Enums
+
+{% for enum in schema.enums -%}
+class {{ network.name }}_{{ enum.name }}(IntEnum):
+{%- for name in enum.items %}
+    {{ name }} = {{ loop.index }}
+{%- endfor %}
+
+{% endfor -%}

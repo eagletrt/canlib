@@ -138,7 +138,7 @@
         "RegVal": {
             "type": "bitset",
             "size": 32,
-            "contents": ["InvStatus", "InvErrors"]
+            "parents": ["InvStatus", "InvErrors"]
         },
         "TsStatus": {
             "type": "enum",

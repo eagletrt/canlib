@@ -7,19 +7,29 @@
 #include <string.h>
 #include <stdio.h>
 
-#ifndef __NETWORK_SHARED
-#define __NETWORK_SHARED
+#ifndef CANLIB_ASSERTS
+#define CANLIB_ASSERTS
 
 static_assert(sizeof(float) == 4, "sizeof(float) != 4 BYTES");
 static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 
+#endif // CANLIB_ASSERTS
+
+#ifndef CANLIB_SHARED
+#define CANLIB_SHARED
+
 #if defined(__MINGW32__)
-#define __is_packed __attribute__((__gcc_struct__, __packed__)) // , __aligned__(1)))
+#define __CANLIB_PACKED __attribute__((__gcc_struct__, __packed__)) // , __aligned__(1)))
 #else
-#define __is_packed __attribute__((__packed__)) // , __aligned__(1)))
+#define __CANLIB_PACKED __attribute__((__packed__)) // , __aligned__(1)))
 #endif
 
-#endif // __NETWORK_SHARED
+#endif // CANLIB_SHARED
+
+#ifndef CANLIB_SEPARATOR
+#define CANLIB_SEPARATOR ,
+#endif // CANLIB_SEPARATOR
+
 
 #define {{ network.name }}_int8 int8_t
 #define {{ network.name }}_uint8 uint8_t
@@ -47,15 +57,15 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 {% for bit_set in schema.bit_sets %}
 typedef uint8_t {{ network.name }}_{{ bit_set.name }}[{{ bit_set.byte_size }}];
 #define {{ network.name }}_{{ bit_set.name }}_DEFAULT { {{ ", ".join(["0"] * bit_set.byte_size) }} }
-{%- for name in bit_set.content %}
+{%- for name in bit_set.items %}
 #define {{ network.name }}_{{ bit_set.name }}_{{ name }} {{ loop.index }}
 {%- endfor %}
 {% endfor %}
 
 // Enums
 {% for enum in schema.enums %}
-typedef enum __is_packed {
-    {%- for name in enum.content %}
+typedef enum __CANLIB_PACKED {
+    {%- for name in enum.items %}
     {{ enum.name }}_{{ name }} = {{ loop.index }},
     {%- endfor %}
 } {{ network.name }}_{{ enum.name }};
@@ -63,24 +73,57 @@ typedef enum __is_packed {
 
 // Structs
 {% for message in schema.messages %}
-typedef struct __is_packed {
+typedef struct __CANLIB_PACKED {
     {%- for field in message.fields %}
     {{ network.name }}_{{ field.type.name }} {{ field.name }};
     {%- endfor %}
 } {{ network.name }}_{{ message.name }}_MSG;
 {% endfor %}
 
-// Utils
+// Strings
 
-void {{ network.name }}_message_name_from_id(uint16_t id, char *buffer) {
-    switch (id) {
-{%- for message in network.messages.values() %}
-{%- for message_name, message_id in message["id"].items() %}
-        case {{ message_id }}: strcpy(buffer, "{{ message_name }}"); break;
+{% for message in schema.messages %}
+void {{ network.name }}_{{ message.name }}_to_string({{ network.name }}_{{ message.name }}_MSG* message, char* buffer) {
+    sprintf(
+        buffer,
+{%- for field in message.fields %}
+        "{{ field.type.format_string }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
+{%- endfor %},
+{%- for field in message.fields %}
+        message->{{ field.name }}{%- if not loop.last %},{%- endif -%}
 {%- endfor %}
-{%- endfor %}
-        default: strcpy(buffer, ""); // Unknown message
-    }
+    );
 }
+
+void {{ network.name }}_{{ message.name }}_fields(char* buffer) {
+    sprintf(
+        buffer,
+{%- for field in message.fields %}
+        "{{ field.name }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
+{%- endfor %}
+    );
+}
+
+void {{ network.name }}_{{ message.name }}_to_string_file({{ network.name }}_{{ message.name }}_MSG* message, FILE* buffer) {
+    fprintf(
+        buffer,
+{%- for field in message.fields %}
+        "{{ field.type.format_string }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
+{%- endfor %},
+{%- for field in message.fields %}
+        message->{{ field.name }}{%- if not loop.last %},{%- endif -%}
+{%- endfor %}
+    );
+}
+
+void {{ network.name }}_{{ message.name }}_fields_file(FILE* buffer) {
+    fprintf(
+        buffer,
+{%- for field in message.fields %}
+        "{{ field.name }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
+{%- endfor %}
+    );
+}
+{% endfor %}
 
 #endif // {{ network.name }}_NETWORK_H

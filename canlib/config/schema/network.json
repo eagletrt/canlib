@@ -1,10 +1,47 @@
 {
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
     "properties": {
         "version": {
             "type": "number",
             "minimum": 0,
             "maximum": 65535
+        },
+        "types": {
+            "type": "object",
+            "patternProperties": {
+                "[a-z]+": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string",
+                            "enum": ["bitset", "enum"]
+                        },
+                        "size": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "items": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        },
+                        "parents": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "required": ["type"],
+                    "oneOf": [
+                        { "required": ["items"] },
+                        { "required": ["parents", "size"] }
+                    ],
+                    "additionalProperties": false
+                }
+            }
         },
         "messages": {
             "type": "array",
@@ -44,5 +81,5 @@
             }
         }
     },
-    "additionalProperties": true
+    "additionalProperties": false
 }

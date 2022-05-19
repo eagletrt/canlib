@@ -77,3 +77,9 @@ class Network:
             contents["fixed_id"]
             for contents in self.get_messages_with_fixed_id().values()
         }
+
+    def max_message_length(self):
+        return max(
+            max(len(name) for name in message["id"].keys())
+            for message in self.messages.values()
+        )
