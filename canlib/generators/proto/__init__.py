@@ -16,7 +16,7 @@ def get_protoc_executable():
 
     if not protoc:
         raise RuntimeError(
-            "Procol buffer not found, please install it using given requirements.txt"
+            "protoc not found, please install it using given requirements.txt"
         )
     else:
         return protoc

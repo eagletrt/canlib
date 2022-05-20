@@ -1,5 +1,11 @@
 # Can Lib
 
+## Install
+
+```
+pip install git+https://github.com/eagletrt/canlib.git#egg=canlib
+```
+
 ## Command Completion
 
 Completion is only available if a script is installed and invoked through an
