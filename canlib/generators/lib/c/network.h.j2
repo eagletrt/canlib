@@ -24,10 +24,15 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define __CANLIB_PACKED __attribute__((__packed__)) // , __aligned__(1)))
 #endif
 
+#define CANLIB_BITMASK(b) (1 << (b))
+#define CANLIB_BITSET(a, b) ((a) |= CANLIB_BITMASK(b))
+#define CANLIB_BITCLEAR(a, b) ((a) &= ~CANLIB_BITMASK(b))
+#define CANLIB_BITTEST(a, b) ((a) & CANLIB_BITMASK(b))
+
 #endif // CANLIB_SHARED
 
 #ifndef CANLIB_SEPARATOR
-#define CANLIB_SEPARATOR ,
+#define CANLIB_SEPARATOR ","
 #endif // CANLIB_SEPARATOR
 
 #define {{ network.name }}_int8 int8_t
@@ -38,9 +43,19 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define {{ network.name }}_uint32 uint32_t
 #define {{ network.name }}_int64 int64_t
 #define {{ network.name }}_uint64 uint64_t
-#define {{ network.name }}_float float
-#define {{ network.name }}_double double
+#define {{ network.name }}_float32 float
+#define {{ network.name }}_float64 double
 #define {{ network.name }}_bool bool
+
+typedef union {
+    uint8_t bytes[4];
+    {{ network.name }}_float32 value;
+} {{ network.name }}_float32_helper;
+
+typedef union {
+    uint8_t bytes[8];
+    {{ network.name }}_float64 value;
+} {{ network.name }}_float64_helper;
 
 // Frequencies
 
@@ -57,10 +72,10 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 // Bitsets
 
 {% for bit_set in schema.bit_sets %}
-typedef uint8_t {{ network.name }}_{{ bit_set.name }}[{{ bit_set.byte_size }}];
-#define {{ network.name }}_{{ bit_set.name }}_DEFAULT { {{ ", ".join(["0"] * bit_set.byte_size) }} }
+typedef {{ network.name }}_{{ bit_set.base_type.name }} {{ network.name }}_{{ bit_set.name }};
+#define {{ network.name }}_{{ bit_set.name }}_DEFAULT 0
 {%- for name in bit_set.items %}
-#define {{ network.name }}_{{ bit_set.name }}_{{ name }} {{ loop.index }}
+#define {{ network.name }}_{{ bit_set.name }}_{{ name }} {{ loop.index0 }}
 {%- endfor %}
 {% endfor %}
 
@@ -69,7 +84,7 @@ typedef uint8_t {{ network.name }}_{{ bit_set.name }}[{{ bit_set.byte_size }}];
 {% for enum in schema.enums %}
 typedef enum __CANLIB_PACKED {
     {%- for name in enum.items %}
-    {{ enum.name }}_{{ name }} = {{ loop.index }},
+    {{ enum.name }}_{{ name }} = {{ loop.index0 }},
     {%- endfor %}
 } {{ network.name }}_{{ enum.name }};
 {% endfor %}
@@ -93,9 +108,19 @@ void {{ network.name }}_serialize_{{ message.name }}(
     {{ network.name }}_{{ field.type.name }} {{ field.name }}{% if not loop.last %},{% endif -%}
 {%- endfor %}
 ) {
+{%- for index, fields in message.alignment.items() -%}
+{%- for field in serialize(network, fields) %}
+    data[{{ index + loop.index0 }}] = {{ field }};
+{%- endfor %}
+{%- endfor %}
 }
 
 void {{ network.name }}_deserialize_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, uint8_t* data) {
+{%- for index, fields in message.alignment.items() -%}
+{%- for name, field in deserialize(network, index, fields).items() %}
+    message->{{ name }} = {{ field }};
+{%- endfor %}
+{%- endfor %}
 }
 {% endfor %}
 

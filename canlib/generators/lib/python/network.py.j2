@@ -1,10 +1,44 @@
 from enum import IntEnum, IntFlag
 from struct import pack, unpack
 
+def {{ network.name }}_int8(value):
+    return int(value)
+
+def {{ network.name }}_uint8(value):
+    return int(value)
+
+def {{ network.name }}_int16(value):
+    return int(value)
+
+def {{ network.name }}_uint16(value):
+    return int(value)
+
+def {{ network.name }}_int32(value):
+    return int(value)
+
+def {{ network.name }}_uint32(value):
+    return int(value)
+
+def {{ network.name }}_int64(value):
+    return int(value)
+
+def {{ network.name }}_uint64(value):
+    return int(value)
+
+def {{ network.name }}_float32(value):
+    return float(value)
+
+def {{ network.name }}_float64(value):
+    return float(value)
+
+def {{ network.name }}_bool(value):
+    return bool(value)
+
+
 # Bitsets
 
 {% for bit_set in schema.bit_sets -%}
-class {{ network.name }}_{{ bit_set.name }}({{ "IntFlag" if bit_set.parents }}):
+class {{ network.name }}_{{ bit_set.name }}({{ "IntFlag" if bit_set.parents | length == 0 }}):
 {%- if bit_set.items %}
 {%- for name in bit_set.items %}
     {{ name }} = {{ 2**loop.index }}
@@ -26,5 +60,50 @@ class {{ network.name }}_{{ enum.name }}(IntEnum):
 {%- for name in enum.items %}
     {{ name }} = {{ loop.index }}
 {%- endfor %}
+
+{% endfor -%}
+
+# Messages
+
+{% for message in schema.messages %}
+class {{ network.name }}_message_{{ message.name }}:
+    def __init__(
+        self{% if message.fields %},{% endif %}
+{%- for field in message.fields %}
+        {{ field.name }}{% if not loop.last %},{% endif -%}
+{%- endfor %}
+    ):
+    {%- if message.fields %}
+        {%- for field in message.fields %}
+        self.{{ field.name }} = {{ network.name }}_{{ field.type.name }}({{ field.name }}) if {{ field.name }} is not None else None
+        {%- endfor %}
+    {%- endif %}
+        self.size = {{ message.size }}
+    {%- if message.frequency != -1 %}
+        self.millis = {{ message.frequency }}
+    {%- endif %}
+
+    def serialize(self):
+        data = bytearray()
+        data.extend({{ serialize(network, message) }})
+        return data
+
+    def deserialize(self, data):
+    {%- if message.fields -%}
+    {%- for name, field in deserialize(network, message).items() %}
+        self.{{ name }} = {{ field }}
+    {%- endfor -%}
+    {%- else %}
+        pass
+    {%- endif %}
+
+    def __eq__(self, other):
+        if not isinstance(other, {{ network.name }}_message_{{ message.name }}):
+            return False
+        {%- for field in message.fields %}
+        if self.{{ field.name }} != other.{{ field.name }}:
+            return False
+        {%- endfor %}
+        return True
 
 {% endfor -%}

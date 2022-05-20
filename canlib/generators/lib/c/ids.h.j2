@@ -1,6 +1,9 @@
 #ifndef {{ network.name }}_IDS_H
 #define {{ network.name }}_IDS_H
 
+#include <stdint.h>
+#include <string.h>
+
 #define {{ network.name }}_IDS_VERSION {{ network.version }}
 {% for topic_name, topic_id in network.topics.items() %}
 {%- set topic_messages = network.get_messages_by_topic(topic_name) %}
@@ -15,5 +18,24 @@
 {%- endfor %}
 {%- endfor %}
 {% endfor %}
+
+// Utils
+
+#define {{ network.name }}_MAX_MESSAGE_LENGTH {{ network.max_message_length() + 1 }}
+
+int {{ network.name }}_message_name_from_id(uint16_t id, char *buffer) {
+    switch (id) {
+{%- for message in network.messages.values() %}
+{%- for message_sub_name in message["id"].keys() %}
+        case {{ network.name }}_id_{{ message_sub_name }}:
+            strcpy(buffer, "{{ message_sub_name }}");
+            return 0;
+{%- endfor %}
+{%- endfor %}
+        default:
+            strcpy(buffer, ""); // Unknown message
+    }
+    return 1;
+}
 
 #endif // {{ network.name }}_IDS_H

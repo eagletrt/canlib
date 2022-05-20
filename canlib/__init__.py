@@ -19,6 +19,7 @@ def generate_ids(net: Path, out: Path):
 
 @main.command()
 @click.argument("net", type=click.Path(exists=True, file_okay=False, path_type=Path))
+@click.argument("ids", type=click.Path(exists=True, file_okay=False, path_type=Path))
 @click.argument("out", type=click.Path(file_okay=False, path_type=Path))
 def generate_lib(net: Path, ids: Path, out: Path):
     generators.lib.generate(net, ids, out)

@@ -1,29 +1,7 @@
 import math
-from typing import List
+from lib2to3.pgen2.token import NUMBER
 
 from canlib.common.network import Network
-
-
-class Number:
-    def __init__(self, name: str, bit_size: int, format_string: str):
-        self.name = name
-        self.bit_size = bit_size
-        self.format_string = format_string
-
-
-NUMBER_TYPES = {
-    "bool": Number("bool", 1, "%f"),
-    "int8": Number("int8", 8, "%lf"),
-    "uint8": Number("uint8", 8, "%hhd"),
-    "int16": Number("int16", 16, "%hd"),
-    "uint16": Number("uint16", 16, "%d"),
-    "int32": Number("int32", 32, "%ld"),
-    "uint32": Number("uint32", 32, "%hhu"),
-    "int64": Number("int64", 64, "%hu"),
-    "uint64": Number("uint64", 64, "%u"),
-    "float32": Number("float32", 32, "%lu"),
-    "float64": Number("float64", 64, "%d"),
-}
 
 
 class Schema:
@@ -88,6 +66,7 @@ class Message:
                     field.bit_mask = mask
 
             self.alignment[index // 8].append(field)
+            field.alignment_index = index // 8
 
             index += field.bit_size
 
@@ -106,11 +85,41 @@ class Field:
         self.bit_size = self.type.bit_size
         self.byte_size = math.ceil(self.bit_size / 8)
 
+        self.alignment_index = 0
         self.shift = None
         self.bit_mask = None
 
     def __repr__(self):
         return f"{self.name}:{self.type.name}"
+
+
+class Number:
+    def __init__(self, name: str, bit_size: int, format_string: str):
+        self.name = name
+        self.bit_size = bit_size
+        self.format_string = format_string
+
+
+NUMBER_TYPES = {
+    "bool": Number("bool", 1, "%f"),
+    "int8": Number("int8", 8, "%lf"),
+    "uint8": Number("uint8", 8, "%hhd"),
+    "int16": Number("int16", 16, "%hd"),
+    "uint16": Number("uint16", 16, "%d"),
+    "int32": Number("int32", 32, "%ld"),
+    "uint32": Number("uint32", 32, "%hhu"),
+    "int64": Number("int64", 64, "%hu"),
+    "uint64": Number("uint64", 64, "%u"),
+    "float32": Number("float32", 32, "%lu"),
+    "float64": Number("float64", 64, "%d"),
+}
+
+NUMBER_TYPES_BY_SIZE = {
+    8: NUMBER_TYPES["uint8"],
+    16: NUMBER_TYPES["uint16"],
+    32: NUMBER_TYPES["uint32"],
+    64: NUMBER_TYPES["uint64"],
+}
 
 
 class Enum:
@@ -127,9 +136,11 @@ class BitSet:
         self.items = definition.get("items", [])
         self.size = definition.get("size", len(self.items))
 
-        self.bit_size = math.ceil(self.size / 8) * 8
+        self.bit_size = 1 << (math.ceil(self.size / 8) * 8 - 1).bit_length()
         self.byte_size = max(self.bit_size // 8, 1)
-        self.format_string = ".".join(["%hhx"] * (self.bit_size // 8))
+        self.base_type = NUMBER_TYPES_BY_SIZE[self.bit_size]
+
+        self.format_string = self.base_type.format_string
         self.parents = []
 
         for bitset in definition.get("parents", []):
