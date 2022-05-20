@@ -30,7 +30,6 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define CANLIB_SEPARATOR ,
 #endif // CANLIB_SEPARATOR
 
-
 #define {{ network.name }}_int8 int8_t
 #define {{ network.name }}_uint8 uint8_t
 #define {{ network.name }}_int16 int16_t
@@ -44,16 +43,19 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define {{ network.name }}_bool bool
 
 // Frequencies
+
 {% for message in schema.messages %}
 #define {{ network.name }}_{{ message.name }}_FREQUENCY {{ message.frequency }}
 {%- endfor %}
 
 // Sizes
+
 {% for message in schema.messages %}
 #define {{ network.name }}_{{ message.name }}_SIZE {{ message.size }}
 {%- endfor %}
 
 // Bitsets
+
 {% for bit_set in schema.bit_sets %}
 typedef uint8_t {{ network.name }}_{{ bit_set.name }}[{{ bit_set.byte_size }}];
 #define {{ network.name }}_{{ bit_set.name }}_DEFAULT { {{ ", ".join(["0"] * bit_set.byte_size) }} }
@@ -63,6 +65,7 @@ typedef uint8_t {{ network.name }}_{{ bit_set.name }}[{{ bit_set.byte_size }}];
 {% endfor %}
 
 // Enums
+
 {% for enum in schema.enums %}
 typedef enum __CANLIB_PACKED {
     {%- for name in enum.items %}
@@ -72,57 +75,81 @@ typedef enum __CANLIB_PACKED {
 {% endfor %}
 
 // Structs
+
 {% for message in schema.messages %}
 typedef struct __CANLIB_PACKED {
     {%- for field in message.fields %}
     {{ network.name }}_{{ field.type.name }} {{ field.name }};
     {%- endfor %}
-} {{ network.name }}_{{ message.name }}_MSG;
+} {{ network.name }}_message_{{ message.name }};
+{% endfor %}
+
+// Serialize and Deserialize
+
+{% for message in schema.messages %}
+void {{ network.name }}_serialize_{{ message.name }}(
+    uint8_t* data{% if message.fields %},{% endif %}
+{%- for field in message.fields %}
+    {{ network.name }}_{{ field.type.name }} {{ field.name }}{% if not loop.last %},{% endif -%}
+{%- endfor %}
+) {
+}
+
+void {{ network.name }}_deserialize_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, uint8_t* data) {
+}
 {% endfor %}
 
 // Strings
 
 {% for message in schema.messages %}
-void {{ network.name }}_{{ message.name }}_to_string({{ network.name }}_{{ message.name }}_MSG* message, char* buffer) {
+void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer) {
+{%- if message.fields  %}
     sprintf(
         buffer,
-{%- for field in message.fields %}
+        {%- for field in message.fields %}
         "{{ field.type.format_string }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
-{%- endfor %},
-{%- for field in message.fields %}
+        {%- endfor %},
+        {%- for field in message.fields %}
         message->{{ field.name }}{%- if not loop.last %},{%- endif -%}
-{%- endfor %}
+        {%- endfor %}
     );
+{% endif -%}
 }
 
-void {{ network.name }}_{{ message.name }}_fields(char* buffer) {
+void {{ network.name }}_fields_{{ message.name }}(char* buffer) {
+{%- if message.fields  %}
     sprintf(
         buffer,
-{%- for field in message.fields %}
+        {%- for field in message.fields %}
         "{{ field.name }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
-{%- endfor %}
+        {%- endfor %}
     );
+{% endif -%}
 }
 
-void {{ network.name }}_{{ message.name }}_to_string_file({{ network.name }}_{{ message.name }}_MSG* message, FILE* buffer) {
+void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, FILE* buffer) {
+{%- if message.fields  %}
     fprintf(
         buffer,
-{%- for field in message.fields %}
+        {%- for field in message.fields %}
         "{{ field.type.format_string }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
-{%- endfor %},
-{%- for field in message.fields %}
+        {%- endfor %},
+        {%- for field in message.fields %}
         message->{{ field.name }}{%- if not loop.last %},{%- endif -%}
-{%- endfor %}
+        {%- endfor %}
     );
+{% endif -%}
 }
 
-void {{ network.name }}_{{ message.name }}_fields_file(FILE* buffer) {
+void {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer) {
+{%- if message.fields  %}
     fprintf(
         buffer,
-{%- for field in message.fields %}
+        {%- for field in message.fields %}
         "{{ field.name }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
-{%- endfor %}
+        {%- endfor %}
     );
+{% endif -%}
 }
 {% endfor %}
 

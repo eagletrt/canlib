@@ -84,7 +84,7 @@ class Message:
                     for bit in reversed(range(start)):
                         if bit >= field.shift:
                             mask = mask | (1 << bit)
-                            start = start - 1
+                            start -= 1
                     field.bit_mask = mask
 
             self.alignment[index // 8].append(field)
@@ -108,6 +108,9 @@ class Field:
 
         self.shift = None
         self.bit_mask = None
+
+    def __repr__(self):
+        return f"{self.name}:{self.type.name}"
 
 
 class Enum:

@@ -5,13 +5,13 @@
 {% for topic_name, topic_id in network.topics.items() %}
 {%- set topic_messages = network.get_messages_by_topic(topic_name) %}
 /* TOPIC {{ topic_name }} */
-#define {{ network.name }}_TOPIC_{{ topic_name }}_MASK 0b00000011111
+#define {{ network.name }}_topic_mask_{{ topic_name }} 0b00000011111
 {%- if topic_id %}
-#define {{ network.name }}_TOPIC_{{ topic_name }}_FILTER 0b{{ "{0:>011b}".format(topic_id) }}
+#define {{ network.name }}_topic_filter_{{ topic_name }} 0b{{ "{0:>011b}".format(topic_id) }}
 {%- endif %}
 {% for message in topic_messages.values() %}
 {%- for message_sub_name, message_id in message["id"].items() %}
-#define {{ network.name }}_ID_{{ message_sub_name }} 0b{{ "{0:>011b}".format(message_id) }}
+#define {{ network.name }}_id_{{ message_sub_name }} 0b{{ "{0:>011b}".format(message_id) }}
 {%- endfor %}
 {%- endfor %}
 {% endfor %}
