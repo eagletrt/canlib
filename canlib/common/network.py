@@ -85,7 +85,4 @@ class Network:
         )
 
     def get_message_count(self):
-        return sum(
-            len(message["id"])
-            for message in self.messages.values()
-        )
+        return sum(len(message["id"]) for message in self.messages.values())

@@ -95,9 +95,12 @@ typedef enum __CANLIB_PACKED {
 
 {% for message in schema.messages %}
 typedef struct __CANLIB_PACKED {
-    {%- for field in message.fields %}
+{%- for field in message.fields %}
     {{ network.name }}_{{ field.type.name }} {{ field.name }};
-    {%- endfor %}
+{%- endfor %}
+#ifdef CANLIB_TIMESTAMP
+    {{ network.name }}_uint32 _timestamp;
+#endif // CANLIB_TIMESTAMP
 } {{ network.name }}_message_{{ message.name }};
 {% endfor %}
 
@@ -117,7 +120,27 @@ void {{ network.name }}_serialize_{{ message.name }}(
 {%- endfor %}
 }
 
-void {{ network.name }}_deserialize_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, uint8_t* data) {
+void {{ network.name }}_serialize_struct_{{ message.name }}(
+    uint8_t* data,
+    {{ network.name }}_message_{{ message.name }}* message
+) {
+{%- for index, fields in message.alignment.items() -%}
+{%- for field in serialize(network, fields, "message->") %}
+    data[{{ index + loop.index0 }}] = {{ field }};
+{%- endfor %}
+{%- endfor %}
+}
+
+void {{ network.name }}_deserialize_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}* message,
+    uint8_t* data
+#ifdef CANLIB_TIMESTAMP
+    , {{ network.name }}_uint32 timestamp
+#endif // CANLIB_TIMESTAMP
+) {
+#ifdef CANLIB_TIMESTAMP
+    message->_timestamp = timestamp;
+#endif // CANLIB_TIMESTAMP
 {%- for index, fields in message.alignment.items() -%}
 {%- for name, field in deserialize(network, index, fields).items() %}
     message->{{ name }} = {{ field }};
@@ -206,12 +229,25 @@ void {{ network.name }}_string_from_id(uint16_t message_id, void* message, FILE 
     }
 }
 
-void {{ network.name }}_deserialize_from_id(uint16_t message_id, uint8_t* data, void* message) {
+void {{ network.name }}_deserialize_from_id(
+    uint16_t message_id,
+    uint8_t* data,
+    void* message
+#ifdef CANLIB_TIMESTAMP
+    , {{ network.name }}_uint32 timestamp
+#endif // CANLIB_TIMESTAMP
+) {
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
         case {{ message_id }}:
-            {{ network.name }}_deserialize_{{ message_name }}(({{ network.name }}_message_{{ message_name }}*) message, data);
+            {{ network.name }}_deserialize_{{ message_name }}(
+                ({{ network.name }}_message_{{ message_name }}*) message,
+                data
+#ifdef CANLIB_TIMESTAMP
+                , timestamp
+#endif // CANLIB_TIMESTAMP
+            );
             break;
 {%- endfor %}
 {%- endfor %}
