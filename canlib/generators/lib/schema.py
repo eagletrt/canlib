@@ -101,17 +101,17 @@ class Number:
 
 
 NUMBER_TYPES = {
-    "bool": Number("bool", 1, "%f"),
-    "int8": Number("int8", 8, "%lf"),
-    "uint8": Number("uint8", 8, "%hhd"),
-    "int16": Number("int16", 16, "%hd"),
-    "uint16": Number("uint16", 16, "%d"),
-    "int32": Number("int32", 32, "%ld"),
-    "uint32": Number("uint32", 32, "%hhu"),
-    "int64": Number("int64", 64, "%hu"),
-    "uint64": Number("uint64", 64, "%u"),
-    "float32": Number("float32", 32, "%lu"),
-    "float64": Number("float64", 64, "%d"),
+    "bool": Number("bool", 1, "%d"),
+    "int8": Number("int8", 8, "%i"),
+    "uint8": Number("uint8", 8, "%u"),
+    "int16": Number("int16", 16, "%i"),
+    "uint16": Number("uint16", 16, "%u"),
+    "int32": Number("int32", 32, "%i"),
+    "uint32": Number("uint32", 32, "%u"),
+    "int64": Number("int64", 64, "%li"),
+    "uint64": Number("uint64", 64, "%lu"),
+    "float32": Number("float32", 32, "%f"),
+    "float64": Number("float64", 64, "%f"),
 }
 
 NUMBER_TYPES_BY_SIZE = {

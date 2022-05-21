@@ -44,7 +44,7 @@ def serialize_byte(fields: List[Field], prefix: str) -> str:
 def serialize_big(network: Network, field: Field, prefix: str) -> str:
     if isinstance(field.type, Number) and field.type.name in ["float32", "float64"]:
         return [
-            f"(({casts(network, field)}_helper) {prefix}{field.name}).bytes[{byte_index}]"
+            f"{network.name}_float32_to_bytes({prefix}{field.name}, {byte_index})"
             for byte_index in range(field.bit_size // 8)
         ]
     elif field.bit_size > 8:

@@ -1,6 +1,10 @@
 #ifndef {{ network.name }}_NETWORK_H
 #define {{ network.name }}_NETWORK_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdbool.h>
 #include <assert.h>
 #include <stdint.h>
@@ -50,14 +54,22 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define {{ network.name }}_bool bool
 
 typedef union {
-    uint8_t bytes[4];
+    {{ network.name }}_uint8 bytes[4];
     {{ network.name }}_float32 value;
 } {{ network.name }}_float32_helper;
 
 typedef union {
-    uint8_t bytes[8];
+    {{ network.name }}_uint8 bytes[8];
     {{ network.name }}_float64 value;
 } {{ network.name }}_float64_helper;
+
+
+#ifdef __cplusplus
+#define {{ network.name }}_float32_to_bytes(float, index) (reinterpret_cast<{{ network.name }}_uint8*>(&((float)))[(index)])
+#else
+#define {{ network.name }}_float32_to_bytes(float, index) ({({{ network.name }}_float32_helper){{ network.name }}_float32_helper.value = (f)}.bytes[(index)])
+#endif
+
 
 // Frequencies
 
@@ -95,9 +107,13 @@ typedef enum __CANLIB_PACKED {
 
 {% for message in schema.messages %}
 typedef struct __CANLIB_PACKED {
+{%- if message.fields %}
 {%- for field in message.fields %}
     {{ network.name }}_{{ field.type.name }} {{ field.name }};
 {%- endfor %}
+{%- else %}
+    {{ network.name }}_uint8 _placeholder; // C++ doesn't like empty structs
+{%- endif %}
 #ifdef CANLIB_TIMESTAMP
     {{ network.name }}_uint32 _timestamp;
 #endif // CANLIB_TIMESTAMP
@@ -290,5 +306,9 @@ void* {{ network.name }}_message_from_id(uint16_t message_id, {{ network.name }}
     }
     return NULL;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // {{ network.name }}_NETWORK_H
