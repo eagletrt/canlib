@@ -5,4 +5,5 @@ __pycache__
 /proto
 /csv
 /out
-/.vscode/
+/.vscode
+/networks
