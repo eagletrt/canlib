@@ -97,7 +97,7 @@ def generate_fixed_ids(network: Network):
 
 
 def generate(networks_dir: Path, output_dir: Path):
-    print("====== id-generator ======")
+    print("====== id ======")
     print(f"Max topics: {2**TOPIC_BITS}")
     print(f"Max messages per topic: {2**MESSAGE_BITS}")
     print(f"Priority range: {0}-{MAX_PRIORITY}")

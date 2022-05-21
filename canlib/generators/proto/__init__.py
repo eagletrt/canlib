@@ -23,7 +23,7 @@ def get_protoc_executable():
 
 
 def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):
-    print("====== flatbuf-generator ======")
+    print("====== proto ======")
 
     networks = utils.load_networks(networks_dir, ids_dir)
 

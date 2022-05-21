@@ -1,6 +1,7 @@
 #ifndef {{ network.name }}_NETWORK_H
 #define {{ network.name }}_NETWORK_H
 
+#include <stdfloat.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <stdint.h>
@@ -43,8 +44,8 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define {{ network.name }}_uint32 uint32_t
 #define {{ network.name }}_int64 int64_t
 #define {{ network.name }}_uint64 uint64_t
-#define {{ network.name }}_float32 float
-#define {{ network.name }}_float64 double
+#define {{ network.name }}_float32 float32
+#define {{ network.name }}_float64 float64
 #define {{ network.name }}_bool bool
 
 typedef union {

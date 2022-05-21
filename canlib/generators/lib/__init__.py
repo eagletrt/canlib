@@ -6,7 +6,7 @@ from canlib.generators.lib.schema import Schema
 
 
 def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):
-    print("====== naked-generator ======")
+    print("====== lib ======")
 
     networks = utils.load_networks(networks_dir, ids_dir)
 
