@@ -41,6 +41,12 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define CANLIB_SEPARATOR ","
 #endif // CANLIB_SEPARATOR
 
+// Info
+
+#define {{ network.name }}_NUMBER_OF_MESSAGES {{ network.get_message_count() }}
+
+// Custom types
+
 #define {{ network.name }}_int8 int8_t
 #define {{ network.name }}_uint8 uint8_t
 #define {{ network.name }}_int16 int16_t
@@ -63,13 +69,16 @@ typedef union {
     {{ network.name }}_float64 value;
 } {{ network.name }}_float64_helper;
 
+typedef struct __CANLIB_PACKED {
+    uint16_t id;
+    void* message;
+} {{ network.name }}_devices[{{ network.name }}_NUMBER_OF_MESSAGES];
 
 #ifdef __cplusplus
 #define {{ network.name }}_float32_to_bytes(float, index) (reinterpret_cast<{{ network.name }}_uint8*>(&((float)))[(index)])
 #else
 #define {{ network.name }}_float32_to_bytes(float, index) ({({{ network.name }}_float32_helper){{ network.name }}_float32_helper.value = (f)}.bytes[(index)])
 #endif
-
 
 // Frequencies
 
@@ -120,6 +129,53 @@ typedef struct __CANLIB_PACKED {
 } {{ network.name }}_message_{{ message.name }};
 {% endfor %}
 
+{% for message in schema.messages %}
+void {{ network.name }}_serialize_{{ message.name }}(
+    uint8_t* data{% if message.fields %},{% endif %}
+{%- for field in message.fields %}
+    {{ network.name }}_{{ field.type.name }} {{ field.name }}{% if not loop.last %},{% endif -%}
+{%- endfor %}
+);
+
+void {{ network.name }}_serialize_struct_{{ message.name }}(
+    uint8_t* data,
+    {{ network.name }}_message_{{ message.name }}* message
+);
+
+void {{ network.name }}_deserialize_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}* message,
+    uint8_t* data
+#ifdef CANLIB_TIMESTAMP
+    , {{ network.name }}_uint32 timestamp
+#endif // CANLIB_TIMESTAMP
+);
+
+void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer);
+void {{ network.name }}_fields_{{ message.name }}(char* buffer);
+void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, FILE* buffer);
+void {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer);
+{% endfor %}
+
+void {{ network.name }}_fields_from_id(uint16_t message_id, FILE *buffer);
+
+void {{ network.name }}_string_from_id(uint16_t message_id, void* message, FILE *buffer);
+
+void {{ network.name }}_deserialize_from_id(
+    uint16_t message_id,
+    uint8_t* data,
+    void* message
+#ifdef CANLIB_TIMESTAMP
+    , {{ network.name }}_uint32 timestamp
+#endif // CANLIB_TIMESTAMP
+);
+
+bool {{ network.name }}_is_message_id(uint16_t message_id);
+void {{ network.name }}_devices_new({{ network.name }}_devices* map);
+
+void* {{ network.name }}_message_from_id(uint16_t message_id, {{ network.name }}_devices* map);
+
+#ifdef {{ network.name }}_IMPLEMENTATION
+
 // Serialize and Deserialize
 
 {% for message in schema.messages %}
@@ -163,11 +219,7 @@ void {{ network.name }}_deserialize_{{ message.name }}(
 {%- endfor %}
 {%- endfor %}
 }
-{% endfor %}
 
-// Strings
-
-{% for message in schema.messages %}
 void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer) {
 {%- if message.fields  %}
     sprintf(
@@ -282,13 +334,6 @@ bool {{ network.name }}_is_message_id(uint16_t message_id) {
     return false;
 }
 
-#define {{ network.name }}_NUMBER_OF_DEVICES {{ network.get_message_count() }}
-
-typedef struct __CANLIB_PACKED {
-    uint16_t id;
-    void* message;
-} {{ network.name }}_devices[{{ network.name }}_NUMBER_OF_DEVICES];
-
 void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
 {%- for message_name, message_contents in network.messages.items() %}
 {% set outer_loop = loop %}
@@ -300,12 +345,14 @@ void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
 }
 
 void* {{ network.name }}_message_from_id(uint16_t message_id, {{ network.name }}_devices* map) {
-    for(int index = 0; index < {{ network.name }}_NUMBER_OF_DEVICES; index++) {
+    for(int index = 0; index < {{ network.name }}_NUMBER_OF_MESSAGES; index++) {
         if ((*map)[index].id == message_id)
             return (*map)[index].message;
     }
     return NULL;
 }
+
+#endif
 
 #ifdef __cplusplus
 }
