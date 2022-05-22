@@ -10,3 +10,4 @@ __pycache__
 /test/ids
 /test/lib
 /test/out
+/test/test.cpp

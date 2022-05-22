@@ -5,7 +5,8 @@ all:
 	mkdir -p out
 
 	gcc test.c -o out/test_c
-	g++ test.c -o out/test_cpp
+	cp test.c test.cpp
+	g++ test.cpp -o out/test_cpp
 
 	@echo "=============="
 	@echo "Starting tests"
