@@ -32,7 +32,7 @@ def generate(network: Network, schema: Schema, output_path: Path):
 
 
 def casts(network: Network, field: Field):
-    return network.name + "_" + field.type.name
+    return field.type.name
 
 
 def struct_schema(field: Field):

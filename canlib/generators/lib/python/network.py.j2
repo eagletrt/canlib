@@ -1,51 +1,51 @@
 from enum import IntEnum, IntFlag
 from struct import pack, unpack
 
-def {{ network.name }}_int8(value):
+def int8(value):
     return int(value)
 
-def {{ network.name }}_uint8(value):
+def uint8(value):
     return int(value)
 
-def {{ network.name }}_int16(value):
+def int16(value):
     return int(value)
 
-def {{ network.name }}_uint16(value):
+def uint16(value):
     return int(value)
 
-def {{ network.name }}_int32(value):
+def int32(value):
     return int(value)
 
-def {{ network.name }}_uint32(value):
+def uint32(value):
     return int(value)
 
-def {{ network.name }}_int64(value):
+def int64(value):
     return int(value)
 
-def {{ network.name }}_uint64(value):
+def uint64(value):
     return int(value)
 
-def {{ network.name }}_float32(value):
+def float32(value):
     return float(value)
 
-def {{ network.name }}_float64(value):
+def float64(value):
     return float(value)
 
-def {{ network.name }}_bool(value):
+def bool(value):
     return bool(value)
 
 
 # Bitsets
 
 {% for bit_set in schema.bit_sets -%}
-class {{ network.name }}_{{ bit_set.name }}({{ "IntFlag" if bit_set.parents | length == 0 }}):
+class {{ bit_set.name }}({{ "IntFlag" if bit_set.parents | length == 0 }}):
 {%- if bit_set.items %}
 {%- for name in bit_set.items %}
     {{ name }} = {{ 2**loop.index0 }}
 {%- endfor %}
 {%- elif bit_set.parents %}
 {%- for field in bit_set.parents %}
-    {{ field }} = {{ network.name }}_{{ field }}(0)
+    {{ field }} = {{ field }}(0)
 {%- endfor %}
 {%- else %}
     pass
@@ -56,7 +56,7 @@ class {{ network.name }}_{{ bit_set.name }}({{ "IntFlag" if bit_set.parents | le
 # Enums
 
 {% for enum in schema.enums -%}
-class {{ network.name }}_{{ enum.name }}(IntEnum):
+class {{ enum.name }}(IntEnum):
 {%- for name in enum.items %}
     {{ name }} = {{ loop.index0 }}
 {%- endfor %}
@@ -66,7 +66,7 @@ class {{ network.name }}_{{ enum.name }}(IntEnum):
 # Messages
 
 {% for message in schema.messages %}
-class {{ network.name }}_message_{{ message.name }}:
+class message_{{ message.name }}:
     def __init__(
         self{% if message.fields %},{% endif %}
 {%- for field in message.fields %}
@@ -75,7 +75,7 @@ class {{ network.name }}_message_{{ message.name }}:
     ):
     {%- if message.fields %}
         {%- for field in message.fields %}
-        self.{{ field.name }} = {{ network.name }}_{{ field.type.name }}({{ field.name }}) if {{ field.name }} is not None else None
+        self.{{ field.name }} = {{ field.type.name }}({{ field.name }}) if {{ field.name }} is not None else None
         {%- endfor %}
     {%- endif %}
         self.size = {{ message.size }}
@@ -98,7 +98,7 @@ class {{ network.name }}_message_{{ message.name }}:
     {%- endif %}
 
     def __eq__(self, other):
-        if not isinstance(other, {{ network.name }}_message_{{ message.name }}):
+        if not isinstance(other, message_{{ message.name }}):
             return False
         {%- for field in message.fields %}
         if self.{{ field.name }} != other.{{ field.name }}:

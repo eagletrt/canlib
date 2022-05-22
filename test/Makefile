@@ -4,8 +4,12 @@ all:
 
 	mkdir -p out
 
-	gcc main.c -o out/test_c
-	g++ main.cpp -o out/test_cpp
+	gcc test.c -o out/test_c
+	g++ test.c -o out/test_cpp
+
+	@echo "=============="
+	@echo "Starting tests"
+	@echo "=============="
 
 	./out/test_c
 	./out/test_cpp

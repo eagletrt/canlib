@@ -8,10 +8,18 @@ def print_bits(arr: bytearray):
     print(f"[ {bytes} ]")
 
 
-message = network.test_message_CAR_STATUS(
-    inverter_l=network.test_InverterStatus.ON,
-    inverter_r=network.test_InverterStatus.ON,
-    car_status=network.test_CarStatus.RUN,
+message = network.message_CAR_STATUS(
+    inverter_l=network.InverterStatus.ON,
+    inverter_r=network.InverterStatus.ON,
+    car_status=network.CarStatus.RUN,
+)
+
+print_bits(message.serialize())
+
+message = network.message_DAS_ERRORS(
+    das_error=network.DasErrors.FSM
+    | network.DasErrors.INVL_TOUT
+    | network.DasErrors.PEDAL_IMPLAUSIBILITY,
 )
 
 print_bits(message.serialize())

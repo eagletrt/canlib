@@ -30,11 +30,6 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define __CANLIB_PACKED __attribute__((__packed__)) // , __aligned__(1)))
 #endif
 
-#define CANLIB_BITMASK(b) (1 << (b))
-#define CANLIB_BITSET(a, b) ((a) |= CANLIB_BITMASK(b))
-#define CANLIB_BITCLEAR(a, b) ((a) &= ~CANLIB_BITMASK(b))
-#define CANLIB_BITTEST(a, b) ((a) & CANLIB_BITMASK(b))
-
 #endif // CANLIB_SHARED
 
 #ifndef CANLIB_SEPARATOR
@@ -98,7 +93,7 @@ typedef struct {
 typedef {{ network.name }}_{{ bit_set.base_type.name }} {{ network.name }}_{{ bit_set.name }};
 #define {{ network.name }}_{{ bit_set.name }}_DEFAULT 0
 {%- for name in bit_set.items %}
-#define {{ network.name }}_{{ bit_set.name }}_{{ name }} {{ loop.index0 }}
+#define {{ network.name }}_{{ bit_set.name }}_{{ name }} {{ 2**loop.index0 }}
 {%- endfor %}
 {% endfor %}
 
