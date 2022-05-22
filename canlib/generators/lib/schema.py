@@ -115,10 +115,10 @@ NUMBER_TYPES = {
 }
 
 NUMBER_TYPES_BY_SIZE = {
-    8: NUMBER_TYPES["uint8"],
-    16: NUMBER_TYPES["uint16"],
-    32: NUMBER_TYPES["uint32"],
-    64: NUMBER_TYPES["uint64"],
+    1: NUMBER_TYPES["uint8"],
+    2: NUMBER_TYPES["uint16"],
+    3: NUMBER_TYPES["uint32"],
+    4: NUMBER_TYPES["uint64"],
 }
 
 
@@ -126,22 +126,27 @@ class Enum:
     def __init__(self, name: str, definition: dict):
         self.name = name
         self.items = definition.get("items", [])
+
         self.bit_size = math.ceil(math.log2(len(self.items)))
-        self.format_string = "%d"
+        self.byte_size = max(self.bit_size // 8, 1)
+        self.base_type = NUMBER_TYPES_BY_SIZE[self.byte_size]
+
+        self.format_string = self.base_type.format_string
+
+    def __len__(self):
+        return len(self.items)
 
 
 class BitSet:
     def __init__(self, name: str, definition: dict):
         self.name = name
         self.items = definition.get("items", [])
-        self.size = definition.get("size", len(self.items))
 
-        self.bit_size = 1 << (math.ceil(self.size / 8) * 8 - 1).bit_length()
+        self.bit_size = 1 << (math.ceil(len(self.items) / 8) * 8 - 1).bit_length()
         self.byte_size = max(self.bit_size // 8, 1)
-        self.base_type = NUMBER_TYPES_BY_SIZE[self.bit_size]
+        self.base_type = NUMBER_TYPES_BY_SIZE[self.byte_size]
 
         self.format_string = self.base_type.format_string
-        self.parents = []
 
-        for bitset in definition.get("parents", []):
-            self.parents.append(str(bitset))
+    def __len__(self):
+        return len(self.items)

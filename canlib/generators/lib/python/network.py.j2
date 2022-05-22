@@ -1,51 +1,48 @@
 from enum import IntEnum, IntFlag
 from struct import pack, unpack
+from typing import Any
 
-def int8(value):
+def int8(value: Any) -> int:
     return int(value)
 
-def uint8(value):
+def uint8(value: Any) -> int:
     return int(value)
 
-def int16(value):
+def int16(value: Any) -> int:
     return int(value)
 
-def uint16(value):
+def uint16(value: Any) -> int:
     return int(value)
 
-def int32(value):
+def int32(value: Any) -> int:
     return int(value)
 
-def uint32(value):
+def uint32(value: Any) -> int:
     return int(value)
 
-def int64(value):
+def int64(value: Any) -> int:
     return int(value)
 
-def uint64(value):
+def uint64(value: Any) -> int:
     return int(value)
 
-def float32(value):
+def float32(value: Any) -> float:
     return float(value)
 
-def float64(value):
+def float64(value: Any) -> float:
     return float(value)
 
-def bool(value):
+def bool(value: Any) -> bool:
     return bool(value)
 
 
 # Bitsets
 
 {% for bit_set in schema.bit_sets -%}
-class {{ bit_set.name }}({{ "IntFlag" if bit_set.parents | length == 0 }}):
+class {{ bit_set.name }}(IntFlag):
 {%- if bit_set.items %}
 {%- for name in bit_set.items %}
     {{ name }} = {{ 2**loop.index0 }}
-{%- endfor %}
-{%- elif bit_set.parents %}
-{%- for field in bit_set.parents %}
-    {{ field }} = {{ field }}(0)
 {%- endfor %}
 {%- else %}
     pass

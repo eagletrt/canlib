@@ -36,10 +36,8 @@ def casts(network: Network, field: Field):
 
 
 def struct_schema(field: Field):
-    if isinstance(field.type, BitSet):
-        return "B" * math.ceil(field.type.size / 8)
-    elif isinstance(field.type, Enum):
-        return "B"
+    if isinstance(field.type, (BitSet, Enum)):
+        return "B" * field.type.byte_size
     elif isinstance(field.type, Number):
         match field.type.name:
             case "uint8":
