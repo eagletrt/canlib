@@ -24,6 +24,7 @@ int main() {
   test_serialize_CAR_STATUS(data, test_InverterStatus_ON,
                             test_InverterStatus_ON, test_CarStatus_RUN);
 
+  printf("CAR_STATUS ");
   print_bits(data, 8);
 
   // BITSETS
@@ -32,6 +33,7 @@ int main() {
                                       test_DasErrors_INVL_TOUT |
                                       test_DasErrors_PEDAL_IMPLAUSIBILITY);
 
+  printf("DAS_ERRORS ");
   print_bits(data, 8);
 
   return 0;

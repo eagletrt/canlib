@@ -14,6 +14,7 @@ message = network.message_CAR_STATUS(
     car_status=network.CarStatus.RUN,
 )
 
+print("CAR_STATUS", end=" ")
 print_bits(message.serialize())
 
 message = network.message_DAS_ERRORS(
@@ -22,4 +23,5 @@ message = network.message_DAS_ERRORS(
     | network.DasErrors.PEDAL_IMPLAUSIBILITY,
 )
 
+print("DAS_ERRORS", end=" ")
 print_bits(message.serialize())
