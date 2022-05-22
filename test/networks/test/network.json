@@ -570,7 +570,7 @@
             "receiving": ["INVERTER_L"],
             "frequency": 20,
             "contents": {
-                "regid": "uint8",
+                "reg_id": "uint8",
                 "lsb": "uint8",
                 "msb": "uint8"
             }
