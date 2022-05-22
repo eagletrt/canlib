@@ -28,7 +28,9 @@ int main() {
 
   // BITSETS
   memset(data, 0, 8);
-  test_serialize_DAS_ERRORS(data, test_DasErrors_FSM | test_DasErrors_INVL_TOUT | test_DasErrors_PEDAL_IMPLAUSIBILITY);
+  test_serialize_DAS_ERRORS(data, test_DasErrors_FSM |
+                                      test_DasErrors_INVL_TOUT |
+                                      test_DasErrors_PEDAL_IMPLAUSIBILITY);
 
   print_bits(data, 8);
 
