@@ -104,6 +104,7 @@ def generate(networks_dir: Path, output_dir: Path):
     print(f"Max messages per priority per topic: {MESSAGES_PER_PRIORITY}")
 
     networks = utils.load_networks(networks_dir)
+    utils.create_subtree(output_dir)
 
     for network in networks:
         print(f"Generating ids for network {network.name}...")

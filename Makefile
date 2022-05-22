@@ -1,11 +1,15 @@
+test:
+	cd test && $(MAKE)
+
 clean:
 	rm -rf ids
-	rm -rf sources
-	rm -rf protobuf
-	rm -rf sheets
+	rm -rf lib
+	rm -rf proto
+	rm -rf csv
+	cd test && $(MAKE) clean
 
 format:
 	black .
 	isort .
 
-.PHONY: clean format
+.PHONY: test clean format

@@ -41,7 +41,7 @@ def {{ network.name }}_bool(value):
 class {{ network.name }}_{{ bit_set.name }}({{ "IntFlag" if bit_set.parents | length == 0 }}):
 {%- if bit_set.items %}
 {%- for name in bit_set.items %}
-    {{ name }} = {{ 2**loop.index }}
+    {{ name }} = {{ 2**loop.index0 }}
 {%- endfor %}
 {%- elif bit_set.parents %}
 {%- for field in bit_set.parents %}
@@ -58,7 +58,7 @@ class {{ network.name }}_{{ bit_set.name }}({{ "IntFlag" if bit_set.parents | le
 {% for enum in schema.enums -%}
 class {{ network.name }}_{{ enum.name }}(IntEnum):
 {%- for name in enum.items %}
-    {{ name }} = {{ loop.index }}
+    {{ name }} = {{ loop.index0 }}
 {%- endfor %}
 
 {% endfor -%}

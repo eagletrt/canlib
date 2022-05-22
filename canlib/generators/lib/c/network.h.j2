@@ -69,16 +69,16 @@ typedef union {
     {{ network.name }}_float64 value;
 } {{ network.name }}_float64_helper;
 
-typedef struct __CANLIB_PACKED {
-    uint16_t id;
-    void* message;
-} {{ network.name }}_devices[{{ network.name }}_NUMBER_OF_MESSAGES];
-
 #ifdef __cplusplus
 #define {{ network.name }}_float32_to_bytes(float, index) (reinterpret_cast<{{ network.name }}_uint8*>(&((float)))[(index)])
 #else
 #define {{ network.name }}_float32_to_bytes(float, index) ({({{ network.name }}_float32_helper){{ network.name }}_float32_helper.value = (f)}.bytes[(index)])
 #endif
+
+typedef struct {
+    uint16_t id;
+    void* message;
+} {{ network.name }}_devices[{{ network.name }}_NUMBER_OF_MESSAGES];
 
 // Frequencies
 
@@ -107,7 +107,7 @@ typedef {{ network.name }}_{{ bit_set.base_type.name }} {{ network.name }}_{{ bi
 {% for enum in schema.enums %}
 typedef enum __CANLIB_PACKED {
     {%- for name in enum.items %}
-    {{ enum.name }}_{{ name }} = {{ loop.index0 }},
+    {{ network.name }}_{{ enum.name }}_{{ name }} = {{ loop.index0 }},
     {%- endfor %}
 } {{ network.name }}_{{ enum.name }};
 {% endfor %}

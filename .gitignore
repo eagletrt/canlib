@@ -1,9 +1,12 @@
 __pycache__
 
+/networks
 /ids
 /lib
 /proto
 /csv
-/out
 /.vscode
-/networks
+
+/test/ids
+/test/lib
+/test/out

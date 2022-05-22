@@ -9,6 +9,7 @@ def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):
     print("====== lib ======")
 
     networks = utils.load_networks(networks_dir, ids_dir)
+    utils.create_subtree(output_dir)
 
     for network in networks:
         output_dir_network = output_dir / network.name
