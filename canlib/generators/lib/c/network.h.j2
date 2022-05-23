@@ -110,6 +110,25 @@ typedef enum __CANLIB_PACKED {
 // Structs
 
 {% for message in schema.messages %}
+{%- if message.has_conversions %}
+typedef struct __CANLIB_PACKED {
+{%- if message.fields %}
+{%- for field in message.fields %}
+{%- if not field.conversion == None %}
+    {{ network.name }}_{{ field.conversion.converted_type.name }} {{ field.name }};
+{%- else  %}
+    {{ network.name }}_{{ field.type.name }} {{ field.name }};
+{%- endif -%}
+
+{%- endfor %}
+{%- else %}
+    {{ network.name }}_uint8 _placeholder; // C++ doesn't like empty structs
+{%- endif %}
+#ifdef CANLIB_TIMESTAMP
+    {{ network.name }}_float64 _timestamp;
+#endif // CANLIB_TIMESTAMP
+} {{ network.name }}_message_{{ message.name }}_conv;
+{% endif %}
 typedef struct __CANLIB_PACKED {
 {%- if message.fields %}
 {%- for field in message.fields %}

@@ -4,6 +4,38 @@ from lib2to3.pgen2.token import NUMBER
 from canlib.common.network import Network
 
 
+class Number:
+    def __init__(self, name: str, bit_size: int, format_string: str):
+        self.name = name
+        self.bit_size = bit_size
+        self.format_string = format_string
+
+    def __repr__(self):
+        return f"{self.name}:{self.bit_size}:{self.format_string}"
+
+
+NUMBER_TYPES = {
+    "bool": Number("bool", 1, "%d"),
+    "int8": Number("int8", 8, "%i"),
+    "uint8": Number("uint8", 8, "%u"),
+    "int16": Number("int16", 16, "%i"),
+    "uint16": Number("uint16", 16, "%u"),
+    "int32": Number("int32", 32, "%i"),
+    "uint32": Number("uint32", 32, "%u"),
+    "int64": Number("int64", 64, "%li"),
+    "uint64": Number("uint64", 64, "%lu"),
+    "float32": Number("float32", 32, "%f"),
+    "float64": Number("float64", 64, "%f"),
+}
+
+NUMBER_TYPES_BY_SIZE = {
+    1: NUMBER_TYPES["uint8"],
+    2: NUMBER_TYPES["uint16"],
+    3: NUMBER_TYPES["uint32"],
+    4: NUMBER_TYPES["uint64"],
+}
+
+
 class Schema:
     def __init__(self, network: Network):
         self.messages = []
@@ -30,6 +62,70 @@ class Schema:
                 )
             )
 
+class Conversion:
+    def __init__(self, raw_type: Number, converted_type: Number, offset: float, conversion: float):
+        self.raw_type = raw_type
+        self.converted_type = converted_type
+        self.offset = offset
+        self.conversion = conversion
+
+    def get_ser(self, network: str, field_name: str):
+        sign = '-' if self.offset > 0 else '+'
+        return f"({network}_{self.raw_type.name})(({field_name} {sign} {abs(self.offset)}) * {self.conversion})"
+
+    def get_deser(self, network: str, field_name: str):
+        return f"((({network}_{self.converted_type.name}){field_name}) / {self.conversion}) {self.offset}"
+
+def conversion_type(name: str, options: dict):
+
+    r0 = options["range"][0]
+    r1 = options["range"][1]
+
+    desired_type = NUMBER_TYPES[options["type"]]
+    raw_type = None
+
+    if "force" in options:
+        if options["force"] in NUMBER_TYPES:
+            raw_type = NUMBER_TYPES[options["force"]]
+        else:
+            print(f"{name} Error no matching type")
+            return -1
+
+
+        conv = (2**raw_type.bit_size) / (r1-r0)
+        conv = round(conv,6)
+    else:
+        prec = options["precision"]
+        numbers = (r1 - r0) * (1/prec)
+
+        if numbers < 2**8:
+            raw_type = NUMBER_TYPES_BY_SIZE[1]
+        elif numbers < 2**16:
+            raw_type = NUMBER_TYPES_BY_SIZE[2]
+        elif numbers < 2**32:
+            raw_type = NUMBER_TYPES_BY_SIZE[3]
+        elif numbers < 2**64:
+            raw_type = NUMBER_TYPES_BY_SIZE[4]
+        else:
+            print("Fat as hell")
+            print(f"{name} Error doesn't fit neither in 64 bit")
+            return -1
+
+        if options["optimize"] == True:
+            conv = (2**raw_type.bit_size) / (r1-r0)
+            conv = round(conv, 6)
+        else:
+            conv = 1 / prec
+            conv = round(conv, 6)
+
+    conversion = Conversion(raw_type, desired_type, r0, conv)
+
+    print("SER: ", conversion.get_ser("test", name))
+    print("DESER: ", conversion.get_deser("test", name))
+
+    print("========"*10)
+
+    return conversion
 
 class Message:
     def __init__(self, name: str, message: dict, types: dict):
@@ -37,10 +133,16 @@ class Message:
         self.fields = []
         self.frequency = message.get("frequency", -1)
         self.alignment = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: []}
+        self.has_conversions = False
 
         fields = []
-        for name, type in message["contents"].items():
-            fields.append(Field(name, type, types))
+        for name, item_type in message["contents"].items():
+            if type(item_type) == dict:
+                conversion = conversion_type(name, item_type)
+                fields.append(Field(name, conversion.raw_type.name, types, conversion))
+                self.has_conversions = True
+            else:
+                fields.append(Field(name, item_type, types))
 
         self.fields = sorted(fields, key=lambda field: field.bit_size, reverse=True)
 
@@ -65,22 +167,26 @@ class Message:
                             start -= 1
                     field.bit_mask = mask
 
+            if index // 8 > 7:
+                print("Error fields doesn't fit in 8 byte message")
+
             self.alignment[index // 8].append(field)
             field.alignment_index = index // 8
 
             index += field.bit_size
-
         self.size = math.ceil(index / 8)
 
 
 class Field:
-    def __init__(self, name: str, type: str, types: dict):
+    def __init__(self, name: str, type: str, types: dict, conversion: Conversion = None):
         self.name = name
 
         if type in NUMBER_TYPES:
             self.type = NUMBER_TYPES[type]
         else:
             self.type = types[type]
+
+        self.conversion = conversion
 
         self.bit_size = self.type.bit_size
         self.byte_size = math.ceil(self.bit_size / 8)
@@ -91,35 +197,6 @@ class Field:
 
     def __repr__(self):
         return f"{self.name}:{self.type.name}"
-
-
-class Number:
-    def __init__(self, name: str, bit_size: int, format_string: str):
-        self.name = name
-        self.bit_size = bit_size
-        self.format_string = format_string
-
-
-NUMBER_TYPES = {
-    "bool": Number("bool", 1, "%d"),
-    "int8": Number("int8", 8, "%i"),
-    "uint8": Number("uint8", 8, "%u"),
-    "int16": Number("int16", 16, "%i"),
-    "uint16": Number("uint16", 16, "%u"),
-    "int32": Number("int32", 32, "%i"),
-    "uint32": Number("uint32", 32, "%u"),
-    "int64": Number("int64", 64, "%li"),
-    "uint64": Number("uint64", 64, "%lu"),
-    "float32": Number("float32", 32, "%f"),
-    "float64": Number("float64", 64, "%f"),
-}
-
-NUMBER_TYPES_BY_SIZE = {
-    1: NUMBER_TYPES["uint8"],
-    2: NUMBER_TYPES["uint16"],
-    3: NUMBER_TYPES["uint32"],
-    4: NUMBER_TYPES["uint64"],
-}
 
 
 class Enum:
