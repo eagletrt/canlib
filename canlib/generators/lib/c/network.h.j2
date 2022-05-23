@@ -164,6 +164,17 @@ void {{ network.name }}_deserialize_{{ message.name }}(
 #endif // CANLIB_TIMESTAMP
 );
 
+{% if message.has_conversions -%}
+void {{ network.name }}_raw_to_conv_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}* raw,
+    {{ network.name }}_message_{{ message.name }}_conv* conv
+);
+void {{ network.name }}_conv_to_raw_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}_conv* conv,
+    {{ network.name }}_message_{{ message.name }}* raw
+);
+{%- endif %}
+
 void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer);
 void {{ network.name }}_fields_{{ message.name }}(char* buffer);
 void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, FILE* buffer);
@@ -233,6 +244,41 @@ void {{ network.name }}_deserialize_{{ message.name }}(
 {%- endfor %}
 {%- endfor %}
 }
+
+
+{% if message.has_conversions -%}
+void {{ network.name }}_raw_to_conv_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}* raw,
+    {{ network.name }}_message_{{ message.name }}_conv* conv
+){
+#ifdef CANLIB_TIMESTAMP
+    conv->_timestamp = raw->_timestamp;
+#endif // CANLIB_TIMESTAMP
+{%- for field in message.fields -%}
+{%- if field.conversion == None %}
+    conv->{{ field.name }} = raw->{{ field.name }};
+{%- else %}
+    conv->{{ field.name }} = {{field.conversion.get_deconv(network.name, "raw->"+field.name)}};
+{%- endif %}
+{%- endfor %}
+}
+void {{ network.name }}_conv_to_raw_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}_conv* conv,
+    {{ network.name }}_message_{{ message.name }}* raw
+){
+#ifdef CANLIB_TIMESTAMP
+    raw->_timestamp = conv->_timestamp;
+#endif // CANLIB_TIMESTAMP
+{%- for field in message.fields -%}
+{%- if field.conversion == None %}
+    raw->{{ field.name }} = conv->{{ field.name }};
+{%- else %}
+    raw->{{ field.name }} = {{field.conversion.get_conv(network.name, "conv->"+field.name)}};
+{%- endif %}
+{%- endfor %}
+}
+{%- endif %}
+
 
 void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer) {
 {%- if message.fields  %}

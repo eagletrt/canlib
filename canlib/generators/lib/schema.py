@@ -69,12 +69,13 @@ class Conversion:
         self.offset = offset
         self.conversion = conversion
 
-    def get_ser(self, network: str, field_name: str):
+    def get_conv(self, network: str, field_name: str):
         sign = '-' if self.offset > 0 else '+'
         return f"({network}_{self.raw_type.name})(({field_name} {sign} {abs(self.offset)}) * {self.conversion})"
 
-    def get_deser(self, network: str, field_name: str):
-        return f"((({network}_{self.converted_type.name}){field_name}) / {self.conversion}) {self.offset}"
+    def get_deconv(self, network: str, field_name: str):
+        sign = '-' if self.offset < 0 else '+'
+        return f"((({network}_{self.converted_type.name}){field_name}) / {self.conversion}) {sign} {abs(self.offset)}"
 
 def conversion_type(name: str, options: dict):
 
@@ -120,8 +121,8 @@ def conversion_type(name: str, options: dict):
 
     conversion = Conversion(raw_type, desired_type, r0, conv)
 
-    print("SER: ", conversion.get_ser("test", name))
-    print("DESER: ", conversion.get_deser("test", name))
+    print("CONV: ", conversion.get_conv("test", name))
+    print("DECONV: ", conversion.get_deconv("test", name))
 
     print("========"*10)
 
