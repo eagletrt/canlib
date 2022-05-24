@@ -69,16 +69,15 @@ class Conversion:
         self.offset = offset
         self.conversion = conversion
 
-    def get_conv(self, network: str, field_name: str):
+    def get_conversion(self, network: str, field_name: str):
         sign = '-' if self.offset > 0 else '+'
         return f"({network}_{self.raw_type.name})(({field_name} {sign} {abs(self.offset)}) * {self.conversion})"
 
-    def get_deconv(self, network: str, field_name: str):
+    def get_deconversion(self, network: str, field_name: str):
         sign = '-' if self.offset < 0 else '+'
         return f"((({network}_{self.converted_type.name}){field_name}) / {self.conversion}) {sign} {abs(self.offset)}"
 
 def conversion_type(name: str, options: dict):
-
     r0 = options["range"][0]
     r1 = options["range"][1]
 
@@ -86,15 +85,9 @@ def conversion_type(name: str, options: dict):
     raw_type = None
 
     if "force" in options:
-        if options["force"] in NUMBER_TYPES:
-            raw_type = NUMBER_TYPES[options["force"]]
-        else:
-            print(f"{name} Error no matching type")
-            return -1
+        raw_type = NUMBER_TYPES[options["force"]]
 
-
-        conv = (2**raw_type.bit_size) / (r1-r0)
-        conv = round(conv,6)
+        conv = round((2**raw_type.bit_size) / (r1-r0), 6)
     else:
         prec = options["precision"]
         numbers = (r1 - r0) * (1/prec)
@@ -108,16 +101,12 @@ def conversion_type(name: str, options: dict):
         elif numbers < 2**64:
             raw_type = NUMBER_TYPES_BY_SIZE[4]
         else:
-            print("Fat as hell")
-            print(f"{name} Error doesn't fit neither in 64 bit")
-            return -1
+            raise TypeError(f"{name} is too large")
 
         if options["optimize"] == True:
-            conv = (2**raw_type.bit_size) / (r1-r0)
-            conv = round(conv, 6)
+            conv = round((2**raw_type.bit_size) / (r1-r0))
         else:
-            conv = 1 / prec
-            conv = round(conv, 6)
+            conv = round(1 / prec, 6)
 
     conversion = Conversion(raw_type, desired_type, r0, conv)
     return conversion
@@ -163,7 +152,7 @@ class Message:
                     field.bit_mask = mask
 
             if index // 8 > 7:
-                print("Error fields doesn't fit in 8 byte message")
+                raise TypeError(f"{name} larger than 8 bytes")
 
             self.alignment[index // 8].append(field)
             field.alignment_index = index // 8
