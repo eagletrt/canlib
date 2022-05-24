@@ -23,6 +23,8 @@
 
 #define {{ network.name }}_MAX_MESSAGE_LENGTH {{ network.max_message_length() + 1 }}
 
+#ifdef {{ network.name }}_IDS_IMPLEMENTATION
+
 int {{ network.name }}_message_name_from_id(uint16_t id, char *buffer) {
     switch (id) {
 {%- for message in network.messages.values() %}
@@ -37,5 +39,7 @@ int {{ network.name }}_message_name_from_id(uint16_t id, char *buffer) {
     }
     return 1;
 }
+
+#endif // {{ network.name }}_IDS_IMPLEMENTATION
 
 #endif // {{ network.name }}_IDS_H
