@@ -438,9 +438,23 @@
             "contents": {
                 "total_voltage": "uint16",
                 "voltage_1": "uint8",
-                "voltage_2": "uint8",
-                "voltage_3": "uint8",
-                "voltage_4": "uint8"
+                "voltage_2": {
+                    "type": "float32",
+                    "range": [0, 5],
+                    "precision": 0.001,
+                    "optimize": true
+                },
+                "voltage_3": {
+                    "type": "float32",
+                    "range": [0, 5],
+                    "precision": 0.001,
+                    "optimize": false
+                },
+                "voltage_4": {
+                    "type": "float32",
+                    "range": [0, 5],
+                    "force": "uint8"
+                }
             }
         },
         {
