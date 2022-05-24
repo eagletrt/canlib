@@ -120,12 +120,6 @@ def conversion_type(name: str, options: dict):
             conv = round(conv, 6)
 
     conversion = Conversion(raw_type, desired_type, r0, conv)
-
-    print("CONV: ", conversion.get_conv("test", name))
-    print("DECONV: ", conversion.get_deconv("test", name))
-
-    print("========"*10)
-
     return conversion
 
 class Message:

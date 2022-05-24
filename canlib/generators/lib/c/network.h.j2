@@ -145,18 +145,17 @@ typedef struct __CANLIB_PACKED {
 {% endfor %}
 
 {% for message in schema.messages %}
+//=============={{message.name}}==============//
 void {{ network.name }}_serialize_{{ message.name }}(
     uint8_t* data{% if message.fields %},{% endif %}
 {%- for field in message.fields %}
     {{ network.name }}_{{ field.type.name }} {{ field.name }}{% if not loop.last %},{% endif -%}
 {%- endfor %}
 );
-
 void {{ network.name }}_serialize_struct_{{ message.name }}(
     uint8_t* data,
     {{ network.name }}_message_{{ message.name }}* message
 );
-
 void {{ network.name }}_deserialize_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}* message,
     uint8_t* data
@@ -164,8 +163,7 @@ void {{ network.name }}_deserialize_{{ message.name }}(
     , {{ network.name }}_uint64 timestamp
 #endif // CANLIB_TIMESTAMP
 );
-
-{% if message.has_conversions -%}
+{%- if message.has_conversions -%}
 void {{ network.name }}_raw_to_conv_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}* raw,
     {{ network.name }}_message_{{ message.name }}_conv* conv
@@ -175,25 +173,28 @@ void {{ network.name }}_conv_to_raw_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}* raw
 );
 {%- endif %}
-
-{% if message.has_conversions %}
+{% if message.has_conversions -%}
 void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conv* message, char* buffer);
-{% else %}
+{% else -%}
 void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer);
-{% endif %}
+{% endif -%}
 void {{ network.name }}_fields_{{ message.name }}(char* buffer);
-{% if message.has_conversions %}
+{% if message.has_conversions -%}
 void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conv* message, FILE* buffer);
-{% else %}
+{% else -%}
 void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, FILE* buffer);
-{% endif %}
+{% endif -%}
 void {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer);
+
 {% endfor %}
 
+
+//==============UTILS==============//
+bool {{ network.name }}_is_message_id(uint16_t message_id);
+void {{ network.name }}_devices_new({{ network.name }}_devices* map);
+int {{ network.name }}_device_index_from_id(uint16_t message_id, {{ network.name }}_devices* map);
 void {{ network.name }}_fields_from_id(uint16_t message_id, FILE *buffer);
-
 void {{ network.name }}_string_from_id(uint16_t message_id, void* message, FILE *buffer);
-
 void {{ network.name }}_deserialize_from_id(
     uint16_t message_id,
     uint8_t* data,
@@ -204,16 +205,11 @@ void {{ network.name }}_deserialize_from_id(
 #endif // CANLIB_TIMESTAMP
 );
 
-bool {{ network.name }}_is_message_id(uint16_t message_id);
-void {{ network.name }}_devices_new({{ network.name }}_devices* map);
-
-int {{ network.name }}_device_index_from_id(uint16_t message_id, {{ network.name }}_devices* map);
 
 #ifdef {{ network.name }}_IMPLEMENTATION
 
-// Serialize and Deserialize
-
-{% for message in schema.messages %}
+{%- for message in schema.messages %}
+//==============SERIALIZE==============//
 void {{ network.name }}_serialize_{{ message.name }}(
     uint8_t* data{% if message.fields %},{% endif %}
 {%- for field in message.fields %}
@@ -226,7 +222,6 @@ void {{ network.name }}_serialize_{{ message.name }}(
 {%- endfor %}
 {%- endfor %}
 }
-
 void {{ network.name }}_serialize_struct_{{ message.name }}(
     uint8_t* data,
     {{ network.name }}_message_{{ message.name }}* message
@@ -238,6 +233,7 @@ void {{ network.name }}_serialize_struct_{{ message.name }}(
 {%- endfor %}
 }
 
+//==============DESERIALIZE==============//
 void {{ network.name }}_deserialize_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}* message,
     uint8_t* data
@@ -255,8 +251,8 @@ void {{ network.name }}_deserialize_{{ message.name }}(
 {%- endfor %}
 }
 
-
-{% if message.has_conversions -%}
+{%- if message.has_conversions -%}
+//==============CONVERSION==============//
 void {{ network.name }}_raw_to_conv_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}* raw,
     {{ network.name }}_message_{{ message.name }}_conv* conv
@@ -289,7 +285,7 @@ void {{ network.name }}_conv_to_raw_{{ message.name }}(
 }
 {%- endif %}
 
-
+//==============STRING==============//
 {% if message.has_conversions -%}
 void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conv* message, char* buffer) {
 {%- if message.fields  %}
@@ -335,7 +331,6 @@ void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_
 {% endif -%}
 }
 {% endif -%}
-
 void {{ network.name }}_fields_{{ message.name }}(char* buffer) {
 {%- if message.fields  %}
     sprintf(
@@ -349,7 +344,6 @@ void {{ network.name }}_fields_{{ message.name }}(char* buffer) {
     );
 {% endif -%}
 }
-
 {% if message.has_conversions -%}
 void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conv* message, FILE* buffer) {
 {%- if message.fields  %}
@@ -433,13 +427,13 @@ void {{ network.name }}_string_from_id(uint16_t message_id, void* message, FILE 
 {%- for schema_msg in schema.messages -%}
 {%- if schema_msg.name == message_name %}
 {%- if schema_msg.has_conversions %}
-    {{ network.name }}_to_string_file_{{ message_name }}(({{ network.name }}_message_{{ message_name }}_conv*) message, buffer);
-{% else %}
-    {{ network.name }}_to_string_file_{{ message_name }}(({{ network.name }}_message_{{ message_name }}*) message, buffer);
-{% endif -%}
-{% endif -%}
-{% endfor -%}
-            break;
+            {{ network.name }}_to_string_file_{{ message_name }}(({{ network.name }}_message_{{ message_name }}_conv*) message, buffer);
+{%- else %}
+            {{ network.name }}_to_string_file_{{ message_name }}(({{ network.name }}_message_{{ message_name }}*) message, buffer);
+{%- endif -%}
+{%- endif -%}
+{%- endfor %}
+        break;
 {%- endfor %}
 {%- endfor %}
     }
@@ -464,25 +458,26 @@ void {{ network.name }}_deserialize_from_id(
             {{ network.name }}_deserialize_{{ message_name }}(
                 ({{ network.name }}_message_{{ message_name }}*) raw_message,
                 data
-#ifdef CANLIB_TIMESTAMP
+                #ifdef CANLIB_TIMESTAMP
                 , timestamp
-#endif // CANLIB_TIMESTAMP
+                #endif
             );
             {{ network.name }}_raw_to_conv_{{ message_name }}(
                 ({{ network.name }}_message_{{message_name}}*) raw_message,
-                ({{ network.name }}_message_{{message_name}}_conv*) conv_message);
-{% else %}
+                ({{ network.name }}_message_{{message_name}}_conv*) conv_message
+            );
+{%- else %}
             {{ network.name }}_deserialize_{{ message_name }}(
                 ({{ network.name }}_message_{{ message_name }}*) raw_message,
                 data
-#ifdef CANLIB_TIMESTAMP
+                #ifdef CANLIB_TIMESTAMP
                 , timestamp
-#endif // CANLIB_TIMESTAMP
+                #endif
             );
-{% endif -%}
-{% endif -%}
-{% endfor -%}
-            break;
+{%- endif -%}
+{%- endif -%}
+{%- endfor %}
+        break;
 {%- endfor %}
 {%- endfor %}
     }
@@ -492,8 +487,7 @@ bool {{ network.name }}_is_message_id(uint16_t message_id) {
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
-        case {{ message_id }}:
-            return true;
+        case {{ message_id }}: return true; break;
 {%- endfor %}
 {%- endfor %}
     }
@@ -501,8 +495,8 @@ bool {{ network.name }}_is_message_id(uint16_t message_id) {
 }
 
 void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
-{% set ns = namespace(inner_loop=0) %}
-{%- for message_name, message_contents in network.messages.items() %}
+{%- set ns = namespace(inner_loop=0) -%}
+{%- for message_name, message_contents in network.messages.items() -%}
 {%- set outer_loop = loop -%}
 {%- for message_id in message_contents["id"].values() -%}
 {%- set ns.inner_loop = [ns.inner_loop, loop.index0]|max %}
