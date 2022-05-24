@@ -440,19 +440,19 @@
                 "voltage_1": "uint8",
                 "voltage_2": {
                     "type": "float32",
-                    "range": [100, 150],
-                    "precision": 0.01,
+                    "range": [0, 5],
+                    "precision": 0.001,
                     "optimize": true
                 },
                 "voltage_3": {
                     "type": "float32",
-                    "range": [-100, 150],
-                    "precision": 0.01,
-                    "optimize": true
+                    "range": [0, 5],
+                    "precision": 0.001,
+                    "optimize": false
                 },
                 "voltage_4": {
                     "type": "float32",
-                    "range": [-100, 150],
+                    "range": [0, 5],
                     "force": "uint8"
                 }
             }

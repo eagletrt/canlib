@@ -106,11 +106,13 @@ class Struct:
         if "timestamp" in struct_description:
             timestamp_message = True
         for index, (field_name, field_type) in enumerate(struct_description.items()):
+            if type(field_type) == dict:
+                field_type = field_type["type"]
             self.fields.append(StructField(field_name, field_type, index + 1, types))
             last_index += 1
         if not timestamp_message:
             self.fields.append(
-                StructField("timestamp", "uint32", last_index + 1, types)
+                StructField("_timestamp", "uint64", last_index + 1, types)
             )
 
 
