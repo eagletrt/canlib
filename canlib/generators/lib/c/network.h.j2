@@ -77,7 +77,7 @@ typedef struct {
 
 // Frequencies
 
-{% for message in schema.messages %}
+{% for message in schema.messages if message.frequency != -1 %}
 #define {{ network.name }}_{{ message.name }}_FREQUENCY {{ message.frequency }}
 {%- endfor %}
 
