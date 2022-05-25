@@ -43,18 +43,17 @@ class Schema:
                 self.structs[struct_name] = Struct(struct_description, self.types)
 
 
+class EnumItem:
+    def __init__(self, item_name, index):
+        self.name = item_name
+        self.index = index
+
 class Enum:
     def __init__(self, type_name, enum_items: list):
         self.proto_type = type_name + "_type"
         self.values = []
         for index, item_name in enumerate(enum_items):
             self.values.append(EnumItem(item_name, index))
-
-
-class EnumItem:
-    def __init__(self, item_name, index):
-        self.name = item_name
-        self.index = index
 
 
 class BitSet:
@@ -97,16 +96,17 @@ class Number:
         else:
             raise Exception(f"{self.original_type} number not yet supported")
 
-
 class Struct:
     def __init__(self, struct_description, types) -> None:
         self.fields = []
+        self.has_conversions = False
         timestamp_message = False
         last_index = 0
         if "timestamp" in struct_description:
             timestamp_message = True
         for index, (field_name, field_type) in enumerate(struct_description.items()):
-            if type(field_type) == dict:
+            if isinstance(field_type, dict):
+                self.has_conversions = True
                 field_type = field_type["type"]
             self.fields.append(StructField(field_name, field_type, index + 1, types))
             last_index += 1
