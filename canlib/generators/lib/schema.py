@@ -62,20 +62,24 @@ class Schema:
                 )
             )
 
+
 class Conversion:
-    def __init__(self, raw_type: Number, converted_type: Number, offset: float, conversion: float):
+    def __init__(
+        self, raw_type: Number, converted_type: Number, offset: float, conversion: float
+    ):
         self.raw_type = raw_type
         self.converted_type = converted_type
         self.offset = offset
         self.conversion = conversion
 
     def get_conversion(self, network: str, field_name: str):
-        sign = '-' if self.offset > 0 else '+'
+        sign = "-" if self.offset > 0 else "+"
         return f"({network}_{self.raw_type.name})(({field_name} {sign} {abs(self.offset)}) * {self.conversion})"
 
     def get_deconversion(self, network: str, field_name: str):
-        sign = '-' if self.offset < 0 else '+'
+        sign = "-" if self.offset < 0 else "+"
         return f"((({network}_{self.converted_type.name}){field_name}) / {self.conversion}) {sign} {abs(self.offset)}"
+
 
 def conversion_type(name: str, options: dict):
     r0 = options["range"][0]
@@ -87,10 +91,10 @@ def conversion_type(name: str, options: dict):
     if "force" in options:
         raw_type = NUMBER_TYPES[options["force"]]
 
-        conv = round((2**raw_type.bit_size) / (r1-r0), 6)
+        conv = round((2**raw_type.bit_size) / (r1 - r0), 6)
     else:
         prec = options["precision"]
-        numbers = (r1 - r0) * (1/prec)
+        numbers = (r1 - r0) * (1 / prec)
 
         if numbers < 2**8:
             raw_type = NUMBER_TYPES_BY_SIZE[1]
@@ -104,12 +108,13 @@ def conversion_type(name: str, options: dict):
             raise TypeError(f"{name} is too large")
 
         if options["optimize"] == True:
-            conv = round((2**raw_type.bit_size) / (r1-r0))
+            conv = round((2**raw_type.bit_size) / (r1 - r0))
         else:
             conv = round(1 / prec, 6)
 
     conversion = Conversion(raw_type, desired_type, r0, conv)
     return conversion
+
 
 class Message:
     def __init__(self, name: str, message: dict, types: dict):
@@ -162,7 +167,9 @@ class Message:
 
 
 class Field:
-    def __init__(self, name: str, type: str, types: dict, conversion: Conversion = None):
+    def __init__(
+        self, name: str, type: str, types: dict, conversion: Conversion = None
+    ):
         self.name = name
 
         if type in NUMBER_TYPES:
