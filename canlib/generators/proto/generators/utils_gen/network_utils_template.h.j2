@@ -1,4 +1,5 @@
 #include <string>
+#include <vector>
 #include "{{ filename }}.pb.h"
 extern "C" {
 #include "../../../../lib/{{ filename }}/c/network.h"
@@ -59,4 +60,45 @@ void {{filename}}_proto_serialize_from_id(uint32_t id, {{filename}}::{{utils.to_
 {%- endfor %}
 {%- endfor %}
     }
+}
+
+
+
+typedef struct {
+{%- for message_name, message_ids in messages.items()-%}
+{%- for message_id in message_ids %}
+{%- if structs[message_name].has_conversions %}
+    std::vector<{{filename}}_message_{{message_name}}_conversion> {{message_name.lower()}};
+{%- else %}
+    std::vector<{{filename}}_message_{{message_name}}> {{message_name.lower()}};
+{%- endif %}
+{%- endfor %}
+{%- endfor %}    
+} {{filename}}_proto_pack;
+
+void {{filename}}_proto_deserialize({{filename}}::{{utils.to_camel_case(filename,"_")}}MessagesPacked* pack,  {{filename}}_proto_pack* map)
+{
+{%- for message_name, message_ids in messages.items()-%}
+{%- for message_id in message_ids %}
+{%- for name, id in message_id.items() %}
+    map->{{message_name.lower()}}.resize(pack->{{message_name.lower()}}_size());
+    for(int i = 0; i < pack->{{message_name.lower()}}_size(); i++){
+{%- for field in structs[message_name].fields -%}
+{%- set snake_case_name = utils.to_snake_case(field.name) %}
+{%- if "_timestamp" in field.name %}
+#ifdef CANLIB_TIMESTAMP
+{%- endif %}
+        map->{{message_name.lower()}}[i].{{snake_case_name}} ={{" "}}
+{%- if isinstance(field.type, Enum) -%}
+         ({{filename}}_{{field.type.type_name}})
+{%- endif -%}
+        pack->{{message_name.lower()}}(i).{{snake_case_name}}();
+{%- if "_timestamp" in field.name %}
+#endif // CANLIB_TIMESTAMP
+{%- endif %}
+{%- endfor %}
+    }
+{% endfor %}
+{%- endfor %}
+{%- endfor %}
 }

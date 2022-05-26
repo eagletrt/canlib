@@ -50,6 +50,7 @@ class EnumItem:
 
 class Enum:
     def __init__(self, type_name, enum_items: list):
+        self.type_name = type_name
         self.proto_type = type_name + "_type"
         self.values = []
         for index, item_name in enumerate(enum_items):
