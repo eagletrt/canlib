@@ -14,9 +14,10 @@ UTILS_CPP_TEMPLATE_ = BASE_DIR / "network_utils_template.h.j2"
 UTILS_PYTHON_TEMPLATE_ = BASE_DIR / "network_utils_template.py.j2"
 
 
-def generate_utils(schema: Schema, network: Network, filename: str, utils_dir_network: str) -> None:
+def generate_utils(
+    schema: Schema, network: Network, filename: str, utils_dir_network: str
+) -> None:
     types, structs, messages = parse_schema(schema, network)
-        
 
     with open(f"{utils_dir_network}/cpp/{filename}_utils.h", "w") as f:
         f.write(generate_cpp_utils(filename, types, structs, messages))

@@ -48,6 +48,7 @@ class EnumItem:
         self.name = item_name
         self.index = index
 
+
 class Enum:
     def __init__(self, type_name, enum_items: list):
         self.type_name = type_name
@@ -96,6 +97,7 @@ class Number:
             self.proto_type = "uint64"
         else:
             raise Exception(f"{self.original_type} number not yet supported")
+
 
 class Struct:
     def __init__(self, struct_description, types) -> None:
