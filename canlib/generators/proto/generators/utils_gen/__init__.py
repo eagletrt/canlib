@@ -6,7 +6,7 @@ import jinja2 as j2
 
 from canlib.common import utils
 from canlib.common.network import Network
-from canlib.generators.lib.schema import BitSet, Enum, Number, Schema
+from canlib.generators.proto.schema import BitSet, Enum, Number, Schema
 
 BASE_DIR = Path(__file__).parent
 
@@ -14,7 +14,9 @@ UTILS_CPP_TEMPLATE_ = BASE_DIR / "network_utils_template.h.j2"
 UTILS_PYTHON_TEMPLATE_ = BASE_DIR / "network_utils_template.py.j2"
 
 
-def generate_utils(schema: Schema, network: Network, filename, utils_dir_network):
+def generate_utils(
+    schema: Schema, network: Network, filename: str, utils_dir_network: str
+) -> None:
     types, structs, messages = parse_schema(schema, network)
 
     with open(f"{utils_dir_network}/cpp/{filename}_utils.h", "w") as f:

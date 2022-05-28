@@ -18,7 +18,7 @@ message {{ utils.to_camel_case(struct_name,"_") }} {
 {%- endfor %}
 }
 {% endfor %}
-message {{ utils.to_camel_case(filename,"_") }}Fenice {
+message {{ utils.to_camel_case(filename,"_") }}MessagesPacked {
 {%- for index,(struct_name, struct_content) in enumerate(structs.items()) %}
 repeated {{ utils.to_camel_case(struct_name,"_") }} {{ struct_name.lower() }} = {{ index+1 }};
 {%- endfor %}

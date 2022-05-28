@@ -1,7 +1,8 @@
 #include <string>
+#include <vector>
 #include "{{ filename }}.pb.h"
 extern "C" {
-#include "../../../../naked_generator/{{ filename }}/c/{{ filename }}.h"
+#include "../../../../lib/{{ filename }}/c/network.h"
 }
 #define BITSET_VALUE(bitset, size) \
 bitset_value=0; \
@@ -15,47 +16,89 @@ bitset_value += current_value; \
 current_value = 0; \
 } \
 }
-std::string {{ filename }}_naked2protobuf(uint32_t id, uint8_t* payload){
-uint64_t bitset_value, current_value;
-switch(id) {
-{%+ for message_name, message_ids in messages.items() %}
-{% for message_id in message_ids %}
-case {{ message_id }}:
-{% endfor -%}
+
+
+void {{filename}}_proto_serialize_from_id(uint32_t id, {{filename}}::{{utils.to_camel_case(filename,"_")}}MessagesPacked* pack,  {{filename}}_devices* map)
 {
-{%- set camel_case_name = utils.to_camel_case(message_name,"_") %}
-{%- if structs[message_name].fields %}
-{{ utils.to_camel_case(filename,"_") }}{{ camel_case_name }}Msg* {{ filename }}_{{ message_name.lower() }}_d = ({{ utils.to_camel_case(filename,"_") }}{{ camel_case_name }}Msg*)malloc({{ filename.upper() }}_{{ message_name }}_SIZE);
-deserialize_{{ utils.to_camel_case(filename,"_") }}{{ camel_case_name }}(payload, {{ filename }}_{{ message_name.lower() }}_d);
-{% endif %}
-{{ filename }}::{{ camel_case_name }} {{ filename }}_{{ message_name.lower() }}_p;
+    int map_idx = {{filename}}_devices_index_from_id(id, map);
+    if(map_idx == -1)
+        return;
+    
+    switch(id) {
+{%- for message_name, message_ids in messages.items()-%}
+{%- for message_id in message_ids %}
+{%- for name, id in message_id.items() %}
+        // ============== {{name}} ============== //
+        case {{ id }}:
+        {
+{%- if structs[message_name].has_conversions %}
+            {{filename}}_message_{{message_name}}_conversion* msg = ({{filename}}_message_{{message_name}}_conversion*) (*map)[map_idx].conversion_message;
+{%- else %}
+            {{filename}}_message_{{message_name}}* msg = ({{filename}}_message_{{message_name}}*) (*map)[map_idx].raw_message;
+{%- endif %}
+            {{filename}}::{{utils.to_camel_case(message_name,"_")}}* proto_msg = pack->add_{{message_name.lower()}}();
+
 {%- if structs[message_name].fields %}
 {%- for field in structs[message_name].fields %}
 {%- set snake_case_name = utils.to_snake_case(field.name) %}
-{%- if isinstance(field.type, BitSet) %}
-BITSET_VALUE({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}, sizeof({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}))
-{{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name -}}
-(bitset_value);
-{%- elif isinstance(field.type, Enum) %}
-{{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name -}}
-(static_cast<{{ filename }}::{{ utils.to_camel_case(field.type.proto_type,"_") }}>({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}));
-{%- elif isinstance(field.type, Number) %}
-{{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name -}}
-(static_cast<{{ field.type.proto_type }}
-{%- if "int" in field.type.proto_type %}_t
-{% endif -%}
->({{ filename }}_{{ message_name.lower() }}_d->{{ field.name }}));
-{%- else %}
-{{ filename }}_{{ message_name.lower() }}_p.set_{{ snake_case_name }}({{ filename }}_{{ message_name.lower() }}_d->{{ field_name }});
+{%- if field.name == "_timestamp" %}
+#ifdef CANLIB_TIMESTAMP
+{%- endif %}
+            proto_msg->set_{{ snake_case_name }}(
+{%- if isinstance(field.type, Enum) -%}
+            ({{filename}}::{{utils.to_camel_case(field.type.proto_type,"_")}})
+{%- endif -%}
+            msg->{{ field.name }});
+{%- if field.name == "_timestamp" %}
+#endif // CANLIB_TIMESTAMP
 {%- endif %}
 {%- endfor %}
-free({{ filename }}_{{ message_name.lower() }}_d);
 {%- endif %}
-std::string serialized;
-{{ filename }}_{{ message_name.lower() }}_p.SerializeToString(&serialized);
-return serialized;
-}
+        }
+        break;
 {% endfor %}
+{%- endfor %}
+{%- endfor %}
+    }
 }
-throw std::runtime_error("Unknown message id");
+
+
+
+typedef struct {
+{%- for message_name, message_ids in messages.items()-%}
+{%- for message_id in message_ids %}
+{%- if structs[message_name].has_conversions %}
+    std::vector<{{filename}}_message_{{message_name}}_conversion> {{message_name.lower()}};
+{%- else %}
+    std::vector<{{filename}}_message_{{message_name}}> {{message_name.lower()}};
+{%- endif %}
+{%- endfor %}
+{%- endfor %}    
+} {{filename}}_proto_pack;
+
+void {{filename}}_proto_deserialize({{filename}}::{{utils.to_camel_case(filename,"_")}}MessagesPacked* pack,  {{filename}}_proto_pack* map)
+{
+{%- for message_name, message_ids in messages.items()-%}
+{%- for message_id in message_ids %}
+{%- for name, id in message_id.items() %}
+    map->{{message_name.lower()}}.resize(pack->{{message_name.lower()}}_size());
+    for(int i = 0; i < pack->{{message_name.lower()}}_size(); i++){
+{%- for field in structs[message_name].fields -%}
+{%- set snake_case_name = utils.to_snake_case(field.name) %}
+{%- if "_timestamp" in field.name %}
+#ifdef CANLIB_TIMESTAMP
+{%- endif %}
+        map->{{message_name.lower()}}[i].{{snake_case_name}} ={{" "}}
+{%- if isinstance(field.type, Enum) -%}
+         ({{filename}}_{{field.type.type_name}})
+{%- endif -%}
+        pack->{{message_name.lower()}}(i).{{snake_case_name}}();
+{%- if "_timestamp" in field.name %}
+#endif // CANLIB_TIMESTAMP
+{%- endif %}
+{%- endfor %}
+    }
+{% endfor %}
+{%- endfor %}
+{%- endfor %}
 }
