@@ -4,7 +4,7 @@ from typing import List
 import jinja2 as j2
 
 from canlib.common.network import Network
-from canlib.generators.lib.schema import BitSet, Field, Number, Schema
+from canlib.common.schema import BitSet, Field, Number, Schema
 
 BASE_DIR = Path(__file__).parent
 

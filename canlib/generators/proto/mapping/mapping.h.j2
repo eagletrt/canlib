@@ -1,0 +1,70 @@
+#include <string>
+#include <vector>
+
+#include "network.pb.h"
+
+extern "C" {
+    #include "../../../../lib/{{ network.name }}/c/network.h"
+}
+
+void {{ network.name }}_proto_serialize_from_id(uint32_t id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map) {
+    int index = {{ network.name }}_devices_index_from_id(id, map);
+
+    if (index == -1) return;
+
+    switch(id) {
+{%- for message in schema.messages %}
+{%- for name, id in message.id.items() %}
+        case {{ id }}: {
+{%- if message.has_conversions %}
+            {{ network.name }}_message_{{ message.name }}_conversion* msg = ({{ network.name }}_message_{{ message.name }}_conversion*) (*map)[index].conversion_message;
+{%- else %}
+            {{ network.name }}_message_{{ message.name }}* msg = ({{ network.name }}_message_{{ message.name }}*) (*map)[index].raw_message;
+{%- endif %}
+            {{ network.name }}::{{ name }}* proto_msg = pack->add_{{ name | lower }}();
+{%- if message.fields %}
+{%- for field in message.fields %}
+            proto_msg->set_{{ field.name }}({%- if field.type.__class__.__name__ == "Enum" -%}({{ network.name }}::{{ field.type.name }}){%- endif -%}msg->{{ field.name }});
+{%- endfor %}
+#ifdef CANLIB_TIMESTAMP
+            proto_msg->set__internal_timestamp(msg->_timestamp);
+#endif // CANLIB_TIMESTAMP
+{%- endif %}
+            break;
+        }
+{% endfor %}
+{%- endfor %}
+    }
+}
+
+typedef struct {
+{%- for message in schema.messages %}
+{%- for name, id in message.id.items() %}
+{%- if message.has_conversions %}
+    std::vector<{{ network.name }}_message_{{ message.name }}_conversion> {{ name }};
+{%- else %}
+    std::vector<{{ network.name }}_message_{{ message.name }}> {{ name }};
+{%- endif %}
+{%- endfor %}
+{%- endfor %}
+} {{ network.name }}_proto_pack;
+
+void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map) {
+{%- for message in schema.messages %}
+{%- for name, id in message.id.items() %}
+    map->{{ name }}.resize(pack->{{ name | lower }}_size());
+    for(int i = 0; i < pack->{{ name | lower }}_size(); i++){
+{%- for field in message.fields %}
+        map->{{ name }}[i].{{ field.name }} =
+{%- if field.type.__class__.__name__ == "Enum" -%}
+         ({{ network.name }}_{{ field.type.name }})
+{%- endif -%}
+        pack->{{ name | lower }}(i).{{ field.name }}();
+{%- endfor %}
+#ifdef CANLIB_TIMESTAMP
+        map->{{ name }}[i]._timestamp = pack->{{ name | lower }}(i)._internal_timestamp();
+#endif // CANLIB_TIMESTAMP
+    }
+{%- endfor %}
+{%- endfor %}
+}

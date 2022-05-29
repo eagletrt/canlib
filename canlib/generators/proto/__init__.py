@@ -4,22 +4,8 @@ from pathlib import Path
 from shutil import which
 
 from canlib.common import utils
-from canlib.generators.proto.compile_schema import compile_schema
-from canlib.generators.proto.generators.utils_gen import generate_utils
-
-
-def get_protoc_executable():
-    if "PROTOC" in os.environ and os.path.exists(os.environ["PROTOC"]):
-        protoc = os.environ["PROTO"]
-    else:
-        protoc = which("protoc")
-
-    if not protoc:
-        raise RuntimeError(
-            "protoc not found, please install it using given requirements.txt"
-        )
-    else:
-        return protoc
+from canlib.common.schema import Schema
+from canlib.generators.proto import mapping, proto
 
 
 def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):
@@ -28,14 +14,29 @@ def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):
     networks = utils.load_networks(networks_dir, ids_dir)
 
     for network in networks:
-        proto_dir = output_dir / "dev"
-        output_dir_network = output_dir / "gen" / network.name
-        utils_dir_network = output_dir_network
+        dev_dir = output_dir / ".dev" / network.name
+        output_dir_network = output_dir / network.name
 
-        schema = compile_schema(network, proto_dir)
-        compile_proto_files(proto_dir, output_dir_network, network.name)
+        utils.create_subtree(dev_dir)
+        utils.create_subtree(output_dir_network)
 
-        generate_utils(schema, network, network.name, utils_dir_network)
+        schema = Schema(network)
+
+        proto.generate(network, schema, dev_dir)
+        mapping.generate(network, schema, output_dir_network)
+
+        compile_proto_files(dev_dir, output_dir_network, network.name)
+
+
+def get_protoc_executable():
+    if "PROTOC" in os.environ:
+        return os.environ["PROTO"]
+
+    protoc = which("protoc")
+    if not protoc:
+        raise RuntimeError("protoc not found")
+
+    return protoc
 
 
 def compile_proto_files(proto_dir, output_dir_network, network_name):
@@ -45,38 +46,18 @@ def compile_proto_files(proto_dir, output_dir_network, network_name):
     cpp_dir_network = output_dir_network / "cpp"
     utils.create_subtree(cpp_dir_network)
 
-    if (
-        subprocess.call(
-            [
-                get_protoc_executable(),
-                "--proto_path",
-                str(proto_dir),
-                "--python_out",
-                str(python_dir_network),
-                str(f"{network_name}.proto"),
-            ]
-        )
-        != 0
-    ):
-        raise RuntimeError("Proto compilation failed for Python")
-    else:
-        print(f"Generated {network_name}_pb2.py for Python into {python_dir_network}")
+    compile_subprocess = subprocess.call(
+        [
+            get_protoc_executable(),
+            "--proto_path",
+            str(proto_dir),
+            "--cpp_out",
+            str(cpp_dir_network),
+            "--python_out",
+            str(python_dir_network),
+            str(proto_dir / "network.proto"),
+        ]
+    )
 
-    if (
-        subprocess.call(
-            [
-                get_protoc_executable(),
-                "--proto_path",
-                str(proto_dir),
-                "--cpp_out",
-                str(cpp_dir_network),
-                str(f"{network_name}.proto"),
-            ]
-        )
-        != 0
-    ):
-        raise RuntimeError("Proto compilation failed for C++")
-    else:
-        print(
-            f"Generated {network_name}.pb.h and {network_name}.pb.cc for C++ into {cpp_dir_network}"
-        )
+    if compile_subprocess != 0:
+        raise RuntimeError("Proto compilation failed")

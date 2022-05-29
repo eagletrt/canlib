@@ -5,7 +5,7 @@ import jinja2 as j2
 
 from canlib import config
 from canlib.common.network import Network
-from canlib.generators.lib.schema import BitSet, Enum, Field, Message, Number, Schema
+from canlib.common.schema import BitSet, Enum, Field, Message, Number, Schema
 
 BASE_DIR = Path(__file__).parent
 

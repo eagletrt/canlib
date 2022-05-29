@@ -1,0 +1,36 @@
+syntax = "proto3";
+package {{ network.name }};
+
+{% for enum in schema.enums %}
+enum {{ enum.name }} {
+    {%- for name in enum.items %}
+    {{ enum.name }}_{{ name }} = {{ loop.index0 }};
+    {%- endfor %}
+}
+{% endfor %}
+
+{%- for message in schema.messages %}
+{%- for name in message.id.keys() %}
+message {{ name }} {
+{%- for field in message.fields %}
+{%- if field.type.__class__.__name__ == "Enum" %}
+    {{ field.type.name }} {{ field.name }} = {{ loop.index }};
+{%- else %}
+    {{ protobuf_type(field.type) }} {{ field.name }} = {{ loop.index }};
+{%- endif %}
+{%- endfor %}
+    uint64 _internal_timestamp = {{ (message.fields | length) + 1 }};
+}
+{%- endfor %}
+{% endfor %}
+
+message Pack {
+{%- set count = namespace(value=1) -%}
+{%- for message in schema.messages %}
+{%- set outer_loop = loop -%}
+{%- for name in message.id.keys() %}
+    repeated {{ name }} {{ name }} = {{ count.value }};
+    {%- set count.value = count.value + 1 -%}
+{%- endfor %}
+{%- endfor %}
+}

@@ -1,5 +1,6 @@
+from __future__ import annotations
+
 import math
-from lib2to3.pgen2.token import NUMBER
 
 from canlib.common.network import Network
 
@@ -9,6 +10,7 @@ class Number:
         self.name = name
         self.bit_size = bit_size
         self.format_string = format_string
+        self.base_type = self  # self reference needed to comply to type API
 
     def __repr__(self):
         return f"{self.name}:{self.bit_size}:{self.format_string}"
@@ -63,71 +65,19 @@ class Schema:
             )
 
 
-class Conversion:
-    def __init__(
-        self, raw_type: Number, converted_type: Number, offset: float, conversion: float
-    ):
-        self.raw_type = raw_type
-        self.converted_type = converted_type
-        self.offset = offset
-        self.conversion = conversion
-
-    def get_conversion(self, network: str, field_name: str):
-        sign = "-" if self.offset > 0 else "+"
-        return f"({network}_{self.raw_type.name})(({field_name} {sign} {abs(self.offset)}) * {self.conversion})"
-
-    def get_deconversion(self, network: str, field_name: str):
-        sign = "-" if self.offset < 0 else "+"
-        return f"((({network}_{self.converted_type.name}){field_name}) / {self.conversion}) {sign} {abs(self.offset)}"
-
-
-def conversion_type(name: str, options: dict):
-    r0 = options["range"][0]
-    r1 = options["range"][1]
-
-    desired_type = NUMBER_TYPES[options["type"]]
-    raw_type = None
-
-    if "force" in options:
-        raw_type = NUMBER_TYPES[options["force"]]
-
-        conv = round((2**raw_type.bit_size) / (r1 - r0), 6)
-    else:
-        prec = options["precision"]
-        numbers = (r1 - r0) * (1 / prec)
-
-        if numbers < 2**8:
-            raw_type = NUMBER_TYPES_BY_SIZE[1]
-        elif numbers < 2**16:
-            raw_type = NUMBER_TYPES_BY_SIZE[2]
-        elif numbers < 2**32:
-            raw_type = NUMBER_TYPES_BY_SIZE[3]
-        elif numbers < 2**64:
-            raw_type = NUMBER_TYPES_BY_SIZE[4]
-        else:
-            raise TypeError(f"{name} is too large")
-
-        if options["optimize"] == True:
-            conv = round((2**raw_type.bit_size) / (r1 - r0))
-        else:
-            conv = round(1 / prec, 6)
-
-    conversion = Conversion(raw_type, desired_type, r0, conv)
-    return conversion
-
-
 class Message:
     def __init__(self, name: str, message: dict, types: dict):
         self.name = name
         self.fields = []
         self.frequency = message.get("frequency", -1)
+        self.id = message.get("id", {})
         self.alignment = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: []}
         self.has_conversions = False
 
         fields = []
         for name, item_type in message["contents"].items():
             if type(item_type) == dict:
-                conversion = conversion_type(name, item_type)
+                conversion = Conversion.from_dict(name, item_type)
                 fields.append(Field(name, conversion.raw_type.name, types, conversion))
                 self.has_conversions = True
             else:
@@ -164,6 +114,58 @@ class Message:
 
             index += field.bit_size
         self.size = math.ceil(index / 8)
+
+
+class Conversion:
+    def __init__(
+        self, raw_type: Number, converted_type: Number, offset: float, conversion: float
+    ):
+        self.raw_type = raw_type
+        self.converted_type = converted_type
+        self.offset = offset
+        self.conversion = conversion
+
+    @classmethod
+    def from_dict(cls, name: str, options: dict) -> Conversion:
+        r0 = options["range"][0]
+        r1 = options["range"][1]
+
+        desired_type = NUMBER_TYPES[options["type"]]
+        raw_type = None
+
+        if "force" in options:
+            raw_type = NUMBER_TYPES[options["force"]]
+
+            conv = round((2**raw_type.bit_size) / (r1 - r0), 6)
+        else:
+            prec = options["precision"]
+            numbers = (r1 - r0) * (1 / prec)
+
+            if numbers < 2**8:
+                raw_type = NUMBER_TYPES_BY_SIZE[1]
+            elif numbers < 2**16:
+                raw_type = NUMBER_TYPES_BY_SIZE[2]
+            elif numbers < 2**32:
+                raw_type = NUMBER_TYPES_BY_SIZE[3]
+            elif numbers < 2**64:
+                raw_type = NUMBER_TYPES_BY_SIZE[4]
+            else:
+                raise TypeError(f"{name} is too large")
+
+            if options["optimize"] == True:
+                conv = round((2**raw_type.bit_size) / (r1 - r0))
+            else:
+                conv = round(1 / prec, 6)
+
+        return cls(raw_type, desired_type, r0, conv)
+
+    def get_conversion(self, network: str, field_name: str):
+        sign = "-" if self.offset > 0 else "+"
+        return f"({network}_{self.raw_type.name})(({field_name} {sign} {abs(self.offset)}) * {self.conversion})"
+
+    def get_deconversion(self, network: str, field_name: str):
+        sign = "-" if self.offset < 0 else "+"
+        return f"((({network}_{self.converted_type.name}){field_name}) / {self.conversion}) {sign} {abs(self.offset)}"
 
 
 class Field:

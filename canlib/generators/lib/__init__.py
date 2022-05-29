@@ -1,8 +1,8 @@
 from pathlib import Path
 
 from canlib.common import utils
+from canlib.common.schema import Schema
 from canlib.generators.lib import c, python
-from canlib.generators.lib.schema import Schema
 
 
 def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):

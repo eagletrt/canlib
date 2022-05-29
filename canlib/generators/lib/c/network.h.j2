@@ -522,7 +522,7 @@ void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
 }
 
 int {{ network.name }}_devices_index_from_id(uint16_t message_id, {{ network.name }}_devices* map) {
-    for(int index = 0; index < {{ network.name }}_NUMBER_OF_MESSAGES; index++) {
+    for (int index = 0; index < {{ network.name }}_NUMBER_OF_MESSAGES; index++) {
         if ((*map)[index].id == message_id)
             return index;
     }
