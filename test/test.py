@@ -15,7 +15,7 @@ message = network.message_CAR_STATUS(
 )
 
 print("CAR_STATUS", end=" ")
-print_bits(message.serialize())
+print_bits(network.serialize_CAR_STATUS(message))
 
 message = network.message_DAS_ERRORS(
     das_error=network.DasErrors.FSM
@@ -24,4 +24,4 @@ message = network.message_DAS_ERRORS(
 )
 
 print("DAS_ERRORS", end=" ")
-print_bits(message.serialize())
+print_bits(network.serialize_DAS_ERRORS(message))

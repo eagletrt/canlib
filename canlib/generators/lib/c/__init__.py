@@ -4,7 +4,7 @@ from typing import List
 import jinja2 as j2
 
 from canlib.common.network import Network
-from canlib.common.schema import BitSet, Field, Number, Schema
+from canlib.common.schema import BitSet, Conversion, Field, Number, Schema
 
 BASE_DIR = Path(__file__).parent
 
@@ -23,8 +23,20 @@ def generate(network: Network, schema: Schema, output_path: Path):
             schema=schema,
             serialize=serialize,
             deserialize=deserialize,
+            get_conversion=get_conversion,
+            get_deconversion=get_deconversion,
         )
     )
+
+
+def get_conversion(conversion: Conversion, network: Network, prefix: str):
+    sign = "-" if conversion.offset > 0 else "+"
+    return f"({network.name}_{conversion.raw_type.name})(({prefix} {sign} {abs(conversion.offset)}) * {conversion.conversion})"
+
+
+def get_deconversion(conversion: Conversion, network: Network, prefix: str):
+    sign = "-" if conversion.offset < 0 else "+"
+    return f"((({network.name}_{conversion.converted_type.name}){prefix}) / {conversion.conversion}) {sign} {abs(conversion.offset)}"
 
 
 def casts(network: Network, field: Field):

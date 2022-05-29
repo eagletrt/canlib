@@ -67,7 +67,7 @@ class message_{{ message.name }}:
     def __init__(
         self{% if message.fields %},{% endif %}
 {%- for field in message.fields %}
-        {{ field.name }}{% if not loop.last %},{% endif -%}
+        {{ field.name }} = None{% if not loop.last %},{% endif -%}
 {%- endfor %}
     ):
     {%- if message.fields %}
@@ -77,21 +77,7 @@ class message_{{ message.name }}:
     {%- endif %}
         self.size = {{ message.size }}
     {%- if message.frequency != -1 %}
-        self.millis = {{ message.frequency }}
-    {%- endif %}
-
-    def serialize(self):
-        data = bytearray()
-        data.extend({{ serialize(network, message) }})
-        return data
-
-    def deserialize(self, data):
-    {%- if message.fields -%}
-    {%- for name, field in deserialize(network, message).items() %}
-        self.{{ name }} = {{ field }}
-    {%- endfor -%}
-    {%- else %}
-        pass
+        self.frequency = {{ message.frequency }}
     {%- endif %}
 
     def __eq__(self, other):
@@ -102,5 +88,44 @@ class message_{{ message.name }}:
             return False
         {%- endfor %}
         return True
+
+{% if message.has_conversions -%}
+class message_{{ message.name }}_conversion:
+    pass
+
+def raw_to_conversion_{{ message.name }}(raw: message_{{ message.name }}) -> message_{{ message.name }}_conversion:
+    conversion = message_{{ message.name }}_conversion()
+{%- for field in message.fields %}
+{%- if field.conversion == None %}
+    conversion.{{ field.name }} = raw.{{ field.name }}
+{%- else %}
+    conversion.{{ field.name }} = {{ get_deconversion(field.conversion, "raw." + field.name) }}
+{%- endif %}
+{%- endfor %}
+    return conversion
+
+def conversion_to_raw_{{ message.name }}(conversion: message_{{ message.name }}_conversion) -> message_{{ message.name }}:
+    raw = message_{{ message.name }}()
+{%- for field in message.fields -%}
+{%- if field.conversion == None %}
+    raw.{{ field.name }} = conversion.{{ field.name }}
+{%- else %}
+    raw.{{ field.name }} = {{get_conversion(field.conversion, "conversion." + field.name) }}
+{%- endif %}
+{%- endfor %}
+    return raw
+{%- endif %}
+
+def serialize_{{ message.name }}(message: message_{{ message.name }}) -> bytearray:
+    data = bytearray()
+    data.extend({{ serialize(network, message) }})
+    return data
+
+def deserialize_{{ message.name }}(data: bytearray) -> message_{{ message.name }}:
+    message = message_{{ message.name }}()
+{%- for name, field in deserialize(network, message).items() %}
+    message.{{ name }} = {{ field }}
+{%- endfor %}
+    return message
 
 {% endfor -%}

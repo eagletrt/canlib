@@ -5,7 +5,15 @@ import jinja2 as j2
 
 from canlib import config
 from canlib.common.network import Network
-from canlib.common.schema import BitSet, Enum, Field, Message, Number, Schema
+from canlib.common.schema import (
+    BitSet,
+    Conversion,
+    Enum,
+    Field,
+    Message,
+    Number,
+    Schema,
+)
 
 BASE_DIR = Path(__file__).parent
 
@@ -27,8 +35,20 @@ def generate(network: Network, schema: Schema, output_path: Path):
             schema=schema,
             serialize=serialize,
             deserialize=deserialize,
+            get_conversion=get_conversion,
+            get_deconversion=get_deconversion,
         )
     )
+
+
+def get_conversion(conversion: Conversion, prefix: str):
+    sign = "-" if conversion.offset > 0 else "+"
+    return f"{conversion.raw_type.name}(({prefix} {sign} {abs(conversion.offset)}) * {conversion.conversion})"
+
+
+def get_deconversion(conversion: Conversion, prefix: str):
+    sign = "-" if conversion.offset < 0 else "+"
+    return f"(({conversion.converted_type.name}({prefix})) / {conversion.conversion}) {sign} {abs(conversion.offset)}"
 
 
 def casts(network: Network, field: Field):
@@ -78,22 +98,22 @@ def pack_schema(alignment: dict) -> str:
     return schema
 
 
-def pack_fields(alignment: dict):
+def pack_fields(alignment: dict, prefix="message"):
     fields = []
     for items in alignment.values():
         if len(items) > 1:
-            pipe = [f"self.{item.name} << {item.shift} & 255" for item in items]
+            pipe = [f"{prefix}.{item.name} << {item.shift} & 255" for item in items]
             fields.append(" | ".join(pipe))
         elif len(items) == 1:
             item = items[0]
             if item.shift == 0:
                 if isinstance(item.type, BitSet):
                     for bytes in reversed(range(item.type.byte_size)):
-                        fields.append(f"(int(self.{item.name}) >> {bytes*8}) & 255")
+                        fields.append(f"(int({prefix}.{item.name}) >> {bytes*8}) & 255")
                 else:
-                    fields.append(f"self.{item.name}")
+                    fields.append(f"{prefix}.{item.name}")
             else:
-                fields.append(f"self.{item.name} << {item.shift} & 255")
+                fields.append(f"{prefix}.{item.name} << {item.shift} & 255")
     return ", ".join(fields)
 
 

@@ -73,7 +73,7 @@ typedef union {
 typedef struct {
     uint16_t id;
     void* raw_message;
-    void* conversion_message;
+    void* message;
 } {{ network.name }}_devices[{{ network.name }}_NUMBER_OF_MESSAGES];
 
 // ============== FREQUENCIES ============== //
@@ -129,7 +129,8 @@ typedef struct __CANLIB_PACKED {
     {{ network.name }}_uint64 _timestamp;
 #endif // CANLIB_TIMESTAMP
 } {{ network.name }}_message_{{ message.name }}_conversion;
-{% endif %}
+{%- endif %}
+
 typedef struct __CANLIB_PACKED {
 {%- if message.fields %}
 {%- for field in message.fields %}
@@ -164,7 +165,7 @@ void {{ network.name }}_deserialize_{{ message.name }}(
     , {{ network.name }}_uint64 timestamp
 #endif // CANLIB_TIMESTAMP
 );
-{%- if message.has_conversions -%}
+{%- if message.has_conversions %}
 void {{ network.name }}_raw_to_conversion_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}* raw,
     {{ network.name }}_message_{{ message.name }}_conversion* conversion
@@ -201,7 +202,7 @@ void {{ network.name }}_deserialize_from_id(
     uint16_t message_id,
     uint8_t* data,
     void* raw_message,
-    void* conversion_message
+    void* message
 #ifdef CANLIB_TIMESTAMP
     , {{ network.name }}_uint64 timestamp
 #endif // CANLIB_TIMESTAMP
@@ -269,7 +270,7 @@ void {{ network.name }}_raw_to_conversion_{{ message.name }}(
 {%- if field.conversion == None %}
     conversion->{{ field.name }} = raw->{{ field.name }};
 {%- else %}
-    conversion->{{ field.name }} = {{field.conversion.get_deconversion(network.name, "raw->"+field.name)}};
+    conversion->{{ field.name }} = {{ get_deconversion(field.conversion, network, "raw->" + field.name) }};
 {%- endif %}
 {%- endfor %}
 }
@@ -284,7 +285,7 @@ void {{ network.name }}_conversion_to_raw_{{ message.name }}(
 {%- if field.conversion == None %}
     raw->{{ field.name }} = conversion->{{ field.name }};
 {%- else %}
-    raw->{{ field.name }} = {{field.conversion.get_conversion(network.name, "conversion->"+field.name)}};
+    raw->{{ field.name }} = {{get_conversion(field.conversion, network, "conversion->" + field.name) }};
 {%- endif %}
 {%- endfor %}
 }
@@ -449,7 +450,7 @@ void {{ network.name }}_deserialize_from_id(
     uint16_t message_id,
     uint8_t* data,
     void* raw_message,
-    void* conversion_message
+    void* message
 #ifdef CANLIB_TIMESTAMP
     , {{ network.name }}_uint64 timestamp
 #endif // CANLIB_TIMESTAMP
@@ -470,7 +471,7 @@ void {{ network.name }}_deserialize_from_id(
             );
             {{ network.name }}_raw_to_conversion_{{ message_name }}(
                 ({{ network.name }}_message_{{message_name}}*) raw_message,
-                ({{ network.name }}_message_{{message_name}}_conversion*) conversion_message
+                ({{ network.name }}_message_{{message_name}}_conversion*) message
             );
 {%- else %}
             {{ network.name }}_deserialize_{{ message_name }}(
@@ -511,9 +512,9 @@ void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
 {%- for schema_msg in schema.messages -%}
 {%- if schema_msg.name == message_name %}
 {%- if schema_msg.has_conversions %}
-    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].conversion_message = (void*) malloc(sizeof({{ network.name }}_message_{{ message_name }}_conversion));
+    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].message = (void*) malloc(sizeof({{ network.name }}_message_{{ message_name }}_conversion));
 {% else %}
-    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].conversion_message = NULL;
+    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].message = NULL;
 {% endif -%}
 {% endif -%}
 {% endfor -%}

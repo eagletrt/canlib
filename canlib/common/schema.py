@@ -159,14 +159,6 @@ class Conversion:
 
         return cls(raw_type, desired_type, r0, conv)
 
-    def get_conversion(self, network: str, field_name: str):
-        sign = "-" if self.offset > 0 else "+"
-        return f"({network}_{self.raw_type.name})(({field_name} {sign} {abs(self.offset)}) * {self.conversion})"
-
-    def get_deconversion(self, network: str, field_name: str):
-        sign = "-" if self.offset < 0 else "+"
-        return f"((({network}_{self.converted_type.name}){field_name}) / {self.conversion}) {sign} {abs(self.offset)}"
-
 
 class Field:
     def __init__(
