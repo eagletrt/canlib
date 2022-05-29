@@ -7,6 +7,23 @@ extern "C" {
     #include "../../../../lib/{{ network.name }}/c/network.h"
 }
 
+typedef struct {
+{%- for message in schema.messages %}
+{%- for name, id in message.id.items() %}
+{%- if message.has_conversions %}
+    std::vector<{{ network.name }}_message_{{ message.name }}_conversion> {{ name }};
+{%- else %}
+    std::vector<{{ network.name }}_message_{{ message.name }}> {{ name }};
+{%- endif %}
+{%- endfor %}
+{%- endfor %}
+} {{ network.name }}_proto_pack;
+
+void {{ network.name }}_proto_serialize_from_id(uint32_t id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map);
+void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map);
+
+#ifdef {{ network.name }}_MAPPING_IMPLEMENTATION
+
 void {{ network.name }}_proto_serialize_from_id(uint32_t id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map) {
     int index = {{ network.name }}_devices_index_from_id(id, map);
 
@@ -37,18 +54,6 @@ void {{ network.name }}_proto_serialize_from_id(uint32_t id, {{ network.name }}:
     }
 }
 
-typedef struct {
-{%- for message in schema.messages %}
-{%- for name, id in message.id.items() %}
-{%- if message.has_conversions %}
-    std::vector<{{ network.name }}_message_{{ message.name }}_conversion> {{ name }};
-{%- else %}
-    std::vector<{{ network.name }}_message_{{ message.name }}> {{ name }};
-{%- endif %}
-{%- endfor %}
-{%- endfor %}
-} {{ network.name }}_proto_pack;
-
 void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map) {
 {%- for message in schema.messages %}
 {%- for name, id in message.id.items() %}
@@ -68,3 +73,5 @@ void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ net
 {%- endfor %}
 {%- endfor %}
 }
+
+#endif // {{ network.name }}_MAPPING_IMPLEMENTATION
