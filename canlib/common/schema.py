@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from typing import Optional
 
 from canlib.common.network import Network
 
@@ -154,7 +155,7 @@ class Conversion:
             else:
                 raise TypeError(f"{name} is too large")
 
-            if options["optimize"] == True:
+            if options.get("optimize", False):
                 conv = round((2**raw_type.bit_size) / (r1 - r0))
             else:
                 conv = round(1 / prec, 6)
@@ -164,7 +165,7 @@ class Conversion:
 
 class Field:
     def __init__(
-        self, name: str, type: str, types: dict, conversion: Conversion = None
+        self, name: str, type: str, types: dict, conversion: Optional[Conversion] = None
     ):
         self.name = name
 
