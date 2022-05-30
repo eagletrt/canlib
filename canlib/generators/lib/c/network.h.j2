@@ -182,17 +182,17 @@ void {{ network.name }}_conversion_to_raw_{{ message.name }}(
 );
 {%- endif %}
 {% if message.has_conversions -%}
-void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, char* buffer);
+int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, uint8_t* buffer);
 {% else -%}
-void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer);
+int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, uint8_t* buffer);
 {% endif -%}
-void {{ network.name }}_fields_{{ message.name }}(char* buffer);
+int {{ network.name }}_fields_{{ message.name }}(uint8_t* buffer);
 {% if message.has_conversions -%}
-void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, FILE* buffer);
+int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, FILE* buffer);
 {% else -%}
-void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, FILE* buffer);
+int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, FILE* buffer);
 {% endif -%}
-void {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer);
+int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer);
 
 {% endfor %}
 
@@ -303,9 +303,9 @@ void {{ network.name }}_conversion_to_raw_{{ message.name }}(
 // ============== STRING ============== //
 
 {% if message.has_conversions -%}
-void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, char* buffer) {
+int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, uint8_t* buffer) {
 {%- if message.fields  %}
-    sprintf(
+    return sprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
         "%ju" CANLIB_SEPARATOR
@@ -324,12 +324,14 @@ void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_
         message->{{ field.name }}{%- if not loop.last %},{%- endif -%}
         {%- endfor %}
     );
+{%- else %}
+    return 0;
 {% endif -%}
 }
 {% else -%}
-void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer) {
+int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, uint8_t* buffer) {
 {%- if message.fields  %}
-    sprintf(
+    return sprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
         "%ju" CANLIB_SEPARATOR
@@ -344,12 +346,14 @@ void {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_
         message->{{ field.name }}{%- if not loop.last %},{%- endif -%}
         {%- endfor %}
     );
+{%- else %}
+    return 0;
 {% endif -%}
 }
 {% endif -%}
-void {{ network.name }}_fields_{{ message.name }}(char* buffer) {
+int {{ network.name }}_fields_{{ message.name }}(uint8_t* buffer) {
 {%- if message.fields  %}
-    sprintf(
+    return sprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
         "_timestamp" CANLIB_SEPARATOR
@@ -358,12 +362,14 @@ void {{ network.name }}_fields_{{ message.name }}(char* buffer) {
         "{{ field.name }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
         {%- endfor %}
     );
+{%- else %}
+    return 0;
 {% endif -%}
 }
 {% if message.has_conversions -%}
-void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, FILE* buffer) {
+int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, FILE* buffer) {
 {%- if message.fields  %}
-    fprintf(
+    return fprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
         "%ju" CANLIB_SEPARATOR
@@ -382,12 +388,14 @@ void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mes
         message->{{ field.name }}{%- if not loop.last %},{%- endif -%}
         {%- endfor %}
     );
+{%- else %}
+    return 0;
 {% endif -%}
 }
 {% else -%}
-void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, FILE* buffer) {
+int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, FILE* buffer) {
 {%- if message.fields  %}
-    fprintf(
+    return fprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
         "%ju" CANLIB_SEPARATOR
@@ -402,13 +410,15 @@ void {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mes
         message->{{ field.name }}{%- if not loop.last %},{%- endif -%}
         {%- endfor %}
     );
+{%- else %}
+    return 0;
 {% endif -%}
 }
 {% endif -%}
 
-void {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer) {
+int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer) {
 {%- if message.fields  %}
-    fprintf(
+    return fprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
         "_timestamp" CANLIB_SEPARATOR
@@ -417,6 +427,8 @@ void {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer) {
         "{{ field.name }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
         {%- endfor %}
     );
+{%- else %}
+    return 0;
 {% endif -%}
 }
 {% endfor %}
