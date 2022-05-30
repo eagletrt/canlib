@@ -113,7 +113,9 @@ class Message:
             field.alignment_index = index // 8
 
             index += field.bit_size
-        self.size = math.ceil(index / 8)
+
+        self.bit_size = index
+        self.byte_size = math.ceil(self.bit_size / 8)
 
 
 class Conversion:

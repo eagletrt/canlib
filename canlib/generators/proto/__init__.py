@@ -23,9 +23,12 @@ def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):
         schema = Schema(network)
 
         proto.generate(network, schema, dev_dir)
+        print(f"Generated protobuf files {dev_dir}")
+
         mapping.generate(network, schema, output_dir_network)
 
         compile_proto_files(dev_dir, output_dir_network, network.name)
+        print(f"Compiled protobuf files {output_dir_network}")
 
 
 def get_protoc_executable():

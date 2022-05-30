@@ -9,7 +9,7 @@
 {%- set topic_messages = network.get_messages_by_topic(topic_name) %}
 /* TOPIC {{ topic_name }} */
 #define {{ network.name }}_topic_mask_{{ topic_name }} 0b00000011111
-{%- if topic_id %}
+{%- if topic_id is not none %}
 #define {{ network.name }}_topic_filter_{{ topic_name }} 0b{{ "{0:>011b}".format(topic_id) }}
 {%- endif %}
 {% for message in topic_messages.values() %}

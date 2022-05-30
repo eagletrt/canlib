@@ -75,7 +75,7 @@ class message_{{ message.name }}:
         self.{{ field.name }} = {{ field.type.name }}({{ field.name }}) if {{ field.name }} is not None else None
         {%- endfor %}
     {%- endif %}
-        self.size = {{ message.size }}
+        self.size = {{ message.byte_size }}
     {%- if message.frequency != -1 %}
         self.frequency = {{ message.frequency }}
     {%- endif %}

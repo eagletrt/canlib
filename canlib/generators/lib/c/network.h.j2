@@ -58,6 +58,7 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define {{ network.name }}_float32 float
 #define {{ network.name }}_float64 double
 #define {{ network.name }}_bool bool
+#define {{ network.name }}_byte_size uint32_t
 
 typedef union {
     {{ network.name }}_uint8 bytes[4];
@@ -90,7 +91,7 @@ typedef struct {
 // ============== SIZES ============== //
 
 {% for message in schema.messages %}
-#define {{ network.name }}_{{ message.name }}_SIZE {{ message.size }}
+#define {{ network.name }}_{{ message.name }}_SIZE {{ message.byte_size }}
 {%- endfor %}
 
 // ============== BIT SETS ============== //
@@ -153,13 +154,13 @@ typedef struct __CANLIB_PACKED {
 {% for message in schema.messages %}
 // ============== {{message.name}} ============== //
 
-void {{ network.name }}_serialize_{{ message.name }}(
+{{ network.name }}_byte_size {{ network.name }}_serialize_{{ message.name }}(
     uint8_t* data{% if message.fields %},{% endif %}
 {%- for field in message.fields %}
     {{ network.name }}_{{ field.type.name }} {{ field.name }}{% if not loop.last %},{% endif -%}
 {%- endfor %}
 );
-void {{ network.name }}_serialize_struct_{{ message.name }}(
+{{ network.name }}_byte_size {{ network.name }}_serialize_struct_{{ message.name }}(
     uint8_t* data,
     {{ network.name }}_message_{{ message.name }}* message
 );
@@ -219,7 +220,7 @@ void {{ network.name }}_deserialize_from_id(
 {%- for message in schema.messages %}
 // ============== SERIALIZE ============== //
 
-void {{ network.name }}_serialize_{{ message.name }}(
+{{ network.name }}_byte_size {{ network.name }}_serialize_{{ message.name }}(
     uint8_t* data{% if message.fields %},{% endif %}
 {%- for field in message.fields %}
     {{ network.name }}_{{ field.type.name }} {{ field.name }}{% if not loop.last %},{% endif -%}
@@ -230,8 +231,10 @@ void {{ network.name }}_serialize_{{ message.name }}(
     data[{{ index + loop.index0 }}] = {{ field }};
 {%- endfor %}
 {%- endfor %}
+    return {{ message.byte_size }};
 }
-void {{ network.name }}_serialize_struct_{{ message.name }}(
+
+{{ network.name }}_byte_size {{ network.name }}_serialize_struct_{{ message.name }}(
     uint8_t* data,
     {{ network.name }}_message_{{ message.name }}* message
 ) {
@@ -240,6 +243,7 @@ void {{ network.name }}_serialize_struct_{{ message.name }}(
     data[{{ index + loop.index0 }}] = {{ field }};
 {%- endfor %}
 {%- endfor %}
+    return {{ message.byte_size }};
 }
 
 // ============== DESERIALIZE ============== //
