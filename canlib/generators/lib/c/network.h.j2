@@ -30,6 +30,11 @@ static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
 #define __CANLIB_PACKED __attribute__((__packed__)) // , __aligned__(1)))
 #endif
 
+#define CANLIB_BITMASK(b) (1 << (b))
+#define CANLIB_BITSET(a, b) ((a) |= CANLIB_BITMASK(b))
+#define CANLIB_BITCLEAR(a, b) ((a) &= ~CANLIB_BITMASK(b))
+#define CANLIB_BITTEST(a, b) ((a) & CANLIB_BITMASK(b))
+
 #endif // CANLIB_SHARED
 
 #ifndef CANLIB_SEPARATOR
