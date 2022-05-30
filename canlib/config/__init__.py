@@ -28,7 +28,7 @@ COLUMNS_ORDER = [
     "priority",
     "sending",
     "receiving",
-    "frequency",
+    "interval",
     "contents",
     "description",
 ]

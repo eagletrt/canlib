@@ -85,7 +85,7 @@ typedef struct {
 // ============== FREQUENCIES ============== //
 
 {% for message in schema.messages %}
-#define {{ network.name }}_{{ message.name }}_FREQUENCY {{ message.frequency }}
+#define {{ network.name }}_{{ message.name }}_INTERVAL {{ message.interval }}
 {%- endfor %}
 
 // ============== SIZES ============== //

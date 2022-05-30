@@ -70,7 +70,7 @@ class Message:
     def __init__(self, name: str, message: dict, types: dict):
         self.name = name
         self.fields = []
-        self.frequency = message.get("frequency", -1)
+        self.interval = message.get("interval", -1)
         self.id = message.get("id", {})
         self.alignment = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: []}
         self.has_conversions = False

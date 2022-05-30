@@ -76,8 +76,8 @@ class message_{{ message.name }}:
         {%- endfor %}
     {%- endif %}
         self.size = {{ message.byte_size }}
-    {%- if message.frequency != -1 %}
-        self.frequency = {{ message.frequency }}
+    {%- if message.interval != -1 %}
+        self.interval = {{ message.interval }}
     {%- endif %}
 
     def __eq__(self, other):
