@@ -24,8 +24,8 @@ NUMBER_TYPES = {
     "uint16": Number("uint16", 16, "%u"),
     "int32": Number("int32", 32, "%li"),
     "uint32": Number("uint32", 32, "%lu"),
-    "int64": Number("int64", 64, "%li"),
-    "uint64": Number("uint64", 64, "%lu"),
+    "int64": Number("int64", 64, "%lli"),
+    "uint64": Number("uint64", 64, "%llu"),
     "float32": Number("float32", 32, "%f"),
     "float64": Number("float64", 64, "%f"),
 }
