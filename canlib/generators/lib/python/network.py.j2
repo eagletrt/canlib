@@ -55,10 +55,16 @@ class {{ bit_set.name }}(IntFlag):
 # Enums
 
 {% for enum in schema.enums -%}
+{%- if enum.items %}
 class {{ enum.name }}(IntEnum):
 {%- for name in enum.items %}
     {{ name }} = {{ loop.index0 }}
 {%- endfor %}
+
+    @classmethod
+    def _missing_(cls, _):
+        return {{ enum.name }}(0)
+{%- endif %}
 
 {% endfor -%}
 
