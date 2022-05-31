@@ -90,7 +90,7 @@ class message_{{ message.name }}:
         return True
 
 {% if message.has_conversions -%}
-class message_{{ message.name }}_conversion:
+class message_{{ message.name }}_conversion(message_{{ message.name }}):
     pass
 
 def raw_to_conversion_{{ message.name }}(raw: message_{{ message.name }}) -> message_{{ message.name }}_conversion:

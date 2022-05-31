@@ -182,11 +182,11 @@ void {{ network.name }}_conversion_to_raw_{{ message.name }}(
 );
 {%- endif %}
 {% if message.has_conversions -%}
-int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, uint8_t* buffer);
+int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, char* buffer);
 {% else -%}
-int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, uint8_t* buffer);
+int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer);
 {% endif -%}
-int {{ network.name }}_fields_{{ message.name }}(uint8_t* buffer);
+int {{ network.name }}_fields_{{ message.name }}(char* buffer);
 {% if message.has_conversions -%}
 int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, FILE* buffer);
 {% else -%}
@@ -303,7 +303,7 @@ void {{ network.name }}_conversion_to_raw_{{ message.name }}(
 // ============== STRING ============== //
 
 {% if message.has_conversions -%}
-int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, uint8_t* buffer) {
+int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, char* buffer) {
 {%- if message.fields  %}
     return sprintf(
         buffer,
@@ -329,7 +329,7 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
 {% endif -%}
 }
 {% else -%}
-int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, uint8_t* buffer) {
+int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer) {
 {%- if message.fields  %}
     return sprintf(
         buffer,
@@ -351,7 +351,7 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
 {% endif -%}
 }
 {% endif -%}
-int {{ network.name }}_fields_{{ message.name }}(uint8_t* buffer) {
+int {{ network.name }}_fields_{{ message.name }}(char* buffer) {
 {%- if message.fields  %}
     return sprintf(
         buffer,
