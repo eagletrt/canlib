@@ -2,6 +2,7 @@ from __future__ import annotations
 from enum import IntEnum, IntFlag
 from struct import pack, unpack
 from typing import Any, Optional
+from builtins import bool as Bool
 
 def int8(value: Any) -> Optional[int]:
     return int(value) if value is not None else None
@@ -33,8 +34,8 @@ def float32(value: Any) -> Optional[float]:
 def float64(value: Any) -> Optional[float]:
     return float(value) if value is not None else None
 
-def bool(value: Any) -> Optional[bool]:
-    return bool(value) if value is not None else None
+def bool(value: Any) -> Optional[Bool]:
+    return Bool(value) if value is not None else None
 
 
 # Bitsets
