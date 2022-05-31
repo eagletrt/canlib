@@ -1,39 +1,40 @@
+from __future__ import annotations
 from enum import IntEnum, IntFlag
 from struct import pack, unpack
-from typing import Any
+from typing import Any, Optional
 
-def int8(value: Any) -> int:
-    return int(value)
+def int8(value: Any) -> Optional[int]:
+    return int(value) if value is not None else None
 
-def uint8(value: Any) -> int:
-    return int(value)
+def uint8(value: Any) -> Optional[int]:
+    return int(value) if value is not None else None
 
-def int16(value: Any) -> int:
-    return int(value)
+def int16(value: Any) -> Optional[int]:
+    return int(value) if value is not None else None
 
-def uint16(value: Any) -> int:
-    return int(value)
+def uint16(value: Any) -> Optional[int]:
+    return int(value) if value is not None else None
 
-def int32(value: Any) -> int:
-    return int(value)
+def int32(value: Any) -> Optional[int]:
+    return int(value) if value is not None else None
 
-def uint32(value: Any) -> int:
-    return int(value)
+def uint32(value: Any) -> Optional[int]:
+    return int(value) if value is not None else None
 
-def int64(value: Any) -> int:
-    return int(value)
+def int64(value: Any) -> Optional[int]:
+    return int(value) if value is not None else None
 
-def uint64(value: Any) -> int:
-    return int(value)
+def uint64(value: Any) -> Optional[int]:
+    return int(value) if value is not None else None
 
-def float32(value: Any) -> float:
-    return float(value)
+def float32(value: Any) -> Optional[float]:
+    return float(value) if value is not None else None
 
-def float64(value: Any) -> float:
-    return float(value)
+def float64(value: Any) -> Optional[float]:
+    return float(value) if value is not None else None
 
-def bool(value: Any) -> bool:
-    return bool(value)
+def bool(value: Any) -> Optional[bool]:
+    return bool(value) if value is not None else None
 
 
 # Bitsets
@@ -72,7 +73,7 @@ class message_{{ message.name }}:
     ):
     {%- if message.fields %}
         {%- for field in message.fields %}
-        self.{{ field.name }} = {{ field.type.name }}({{ field.name }}) if {{ field.name }} is not None else None
+        self.{{ field.name }} = {{ field.type.name }}({{ field.name }})
         {%- endfor %}
     {%- endif %}
         self.size = {{ message.byte_size }}
@@ -89,43 +90,71 @@ class message_{{ message.name }}:
         {%- endfor %}
         return True
 
-{% if message.has_conversions -%}
-class message_{{ message.name }}_conversion(message_{{ message.name }}):
-    pass
+    def serialize(self) -> bytearray:
+        data = bytearray()
+        data.extend({{ serialize(network, message) }})
+        return data
 
-def raw_to_conversion_{{ message.name }}(raw: message_{{ message.name }}) -> message_{{ message.name }}_conversion:
-    conversion = message_{{ message.name }}_conversion()
+    @classmethod
+    def deserialize(cls, data: bytearray):
+        message = cls()
+    {%- for name, field in deserialize(network, message).items() %}
+        message.{{ name }} = {{ field }}
+    {%- endfor %}
+        return message
+
+{% if message.has_conversions %}
+    def convert(self) -> message_{{ message.name }}_conversion:
+        conversion = message_{{ message.name }}_conversion()
+    {%- for field in message.fields %}
+    {%- if field.conversion == None %}
+        conversion.{{ field.name }} = self.{{ field.name }}
+    {%- else %}
+        conversion.{{ field.name }} = {{ get_deconversion(field.conversion, "self." + field.name) }}
+    {%- endif %}
+    {%- endfor %}
+        return conversion
+
+
+class message_{{ message.name }}_conversion:
+    def __init__(
+        self{% if message.fields %},{% endif %}
 {%- for field in message.fields %}
-{%- if field.conversion == None %}
-    conversion.{{ field.name }} = raw.{{ field.name }}
-{%- else %}
-    conversion.{{ field.name }} = {{ get_deconversion(field.conversion, "raw." + field.name) }}
-{%- endif %}
+        {{ field.name }} = None{% if not loop.last %},{% endif -%}
 {%- endfor %}
-    return conversion
+    ):
+    {%- if message.fields %}
+        {%- for field in message.fields %}
+        {%- if field.conversion == None %}
+        self.{{ field.name }} = {{ field.type.name }}({{ field.name }})
+        {%- else %}
+        self.{{ field.name }} = {{ field.conversion.converted_type.name }}({{ field.name }})
+        {%- endif %}
+        {%- endfor %}
+    {%- endif %}
+        self.size = {{ message.byte_size }}
+    {%- if message.interval != -1 %}
+        self.interval = {{ message.interval }}
+    {%- endif %}
 
-def conversion_to_raw_{{ message.name }}(conversion: message_{{ message.name }}_conversion) -> message_{{ message.name }}:
-    raw = message_{{ message.name }}()
-{%- for field in message.fields -%}
-{%- if field.conversion == None %}
-    raw.{{ field.name }} = conversion.{{ field.name }}
-{%- else %}
-    raw.{{ field.name }} = {{get_conversion(field.conversion, "conversion." + field.name) }}
-{%- endif %}
+    def __eq__(self, other):
+        if not isinstance(other, message_{{ message.name }}):
+            return False
+        {%- for field in message.fields %}
+        if self.{{ field.name }} != other.{{ field.name }}:
+            return False
+        {%- endfor %}
+        return True
+
+    def convert_to_raw(self) -> message_{{ message.name }}:
+        raw = message_{{ message.name }}()
+    {%- for field in message.fields -%}
+    {%- if field.conversion == None %}
+        raw.{{ field.name }} = self.{{ field.name }}
+    {%- else %}
+        raw.{{ field.name }} = {{get_conversion(field.conversion, "self." + field.name) }}
+    {%- endif %}
+    {%- endfor %}
+        return raw
+{% endif %}
 {%- endfor %}
-    return raw
-{%- endif %}
-
-def serialize_{{ message.name }}(message: message_{{ message.name }}) -> bytearray:
-    data = bytearray()
-    data.extend({{ serialize(network, message) }})
-    return data
-
-def deserialize_{{ message.name }}(data: bytearray) -> message_{{ message.name }}:
-    message = message_{{ message.name }}()
-{%- for name, field in deserialize(network, message).items() %}
-    message.{{ name }} = {{ field }}
-{%- endfor %}
-    return message
-
-{% endfor -%}

@@ -98,7 +98,7 @@ def pack_schema(alignment: dict) -> str:
     return schema
 
 
-def pack_fields(alignment: dict, prefix="message"):
+def pack_fields(alignment: dict, prefix="self"):
     fields = []
     for items in alignment.values():
         if len(items) > 1:
