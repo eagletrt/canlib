@@ -40,6 +40,17 @@ int {{ network.name }}_message_name_from_id(uint16_t id, char *buffer) {
     return 1;
 }
 
+bool {{ network.name }}_is_message_id(uint16_t message_id) {
+    switch (message_id) {
+{%- for message_name, message_contents in network.messages.items() %}
+{%- for message_id in message_contents["id"].values() %}
+        case {{ message_id }}: return true; break;
+{%- endfor %}
+{%- endfor %}
+    }
+    return false;
+}
+
 #endif // {{ network.name }}_IDS_IMPLEMENTATION
 
 #endif // {{ network.name }}_IDS_H
