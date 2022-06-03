@@ -173,12 +173,12 @@ void {{ network.name }}_deserialize_{{ message.name }}(
 );
 {%- if message.has_conversions %}
 void {{ network.name }}_raw_to_conversion_{{ message.name }}(
-    {{ network.name }}_message_{{ message.name }}* raw,
-    {{ network.name }}_message_{{ message.name }}_conversion* conversion
-);
-void {{ network.name }}_conversion_to_raw_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}_conversion* conversion,
     {{ network.name }}_message_{{ message.name }}* raw
+);
+void {{ network.name }}_conversion_to_raw_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}* raw,
+    {{ network.name }}_message_{{ message.name }}_conversion* conversion
 );
 {%- endif %}
 {% if message.has_conversions -%}
@@ -268,8 +268,8 @@ void {{ network.name }}_deserialize_{{ message.name }}(
 // ============== CONVERSION ============== //
 
 void {{ network.name }}_raw_to_conversion_{{ message.name }}(
-    {{ network.name }}_message_{{ message.name }}* raw,
-    {{ network.name }}_message_{{ message.name }}_conversion* conversion
+    {{ network.name }}_message_{{ message.name }}_conversion* conversion,
+    {{ network.name }}_message_{{ message.name }}* raw
 ){
 #ifdef CANLIB_TIMESTAMP
     conversion->_timestamp = raw->_timestamp;
@@ -283,8 +283,8 @@ void {{ network.name }}_raw_to_conversion_{{ message.name }}(
 {%- endfor %}
 }
 void {{ network.name }}_conversion_to_raw_{{ message.name }}(
-    {{ network.name }}_message_{{ message.name }}_conversion* conversion,
-    {{ network.name }}_message_{{ message.name }}* raw
+    {{ network.name }}_message_{{ message.name }}* raw,
+    {{ network.name }}_message_{{ message.name }}_conversion* conversion
 ){
 #ifdef CANLIB_TIMESTAMP
     raw->_timestamp = conversion->_timestamp;
@@ -490,8 +490,8 @@ void {{ network.name }}_deserialize_from_id(
                 #endif
             );
             {{ network.name }}_raw_to_conversion_{{ message_name }}(
-                ({{ network.name }}_message_{{message_name}}*) raw_message,
-                ({{ network.name }}_message_{{message_name}}_conversion*) message
+                ({{ network.name }}_message_{{message_name}}_conversion*) message,
+                ({{ network.name }}_message_{{message_name}}*) raw_message
             );
 {%- else %}
             {{ network.name }}_deserialize_{{ message_name }}(
