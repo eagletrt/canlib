@@ -3,8 +3,9 @@ from typing import List
 
 import jinja2 as j2
 
+from canlib import config
 from canlib.common.network import Network
-from canlib.common.schema import BitSet, Conversion, Field, Number, Schema
+from canlib.common.schema import Conversion, Field, Number, Schema
 
 BASE_DIR = Path(__file__).parent
 
@@ -16,6 +17,8 @@ def generate(network: Network, schema: Schema, output_path: Path):
     ids_path = output_path / "ids.h"
     ids_path.write_text(TEMPLATE_IDS.render(network=network, schema=schema))
 
+    endianess = "LITTLE_ENDIAN" if config.IS_LITTLE_ENDIAN else "BIG_ENDIAN"
+
     network_path = output_path / "network.h"
     network_path.write_text(
         TEMPLATE_NETWORK.render(
@@ -25,6 +28,7 @@ def generate(network: Network, schema: Schema, output_path: Path):
             deserialize=deserialize,
             get_conversion=get_conversion,
             get_deconversion=get_deconversion,
+            endianess=endianess,
         )
     )
 

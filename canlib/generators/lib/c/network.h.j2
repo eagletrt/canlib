@@ -16,18 +16,38 @@ extern "C" {
 #ifndef CANLIB_ASSERTS
 #define CANLIB_ASSERTS
 
-static_assert(sizeof(float) == 4, "sizeof(float) != 4 BYTES");
-static_assert(sizeof(double) == 8, "sizeof(double) != 8 BYTES");
+static_assert(sizeof(float) == 4, "canlib: sizeof(float) != 4 BYTES");
+static_assert(sizeof(double) == 8, "canlib: sizeof(double) != 8 BYTES");
 
 #endif // CANLIB_ASSERTS
 
 #ifndef CANLIB_SHARED
 #define CANLIB_SHARED
 
+/* We know it's PACKING but PARKING sounds a bit better ;) */
 #if defined(__MINGW32__)
-#define __CANLIB_PACKED __attribute__((__gcc_struct__, __packed__)) // , __aligned__(1)))
+#define __CANLIB_PARKING __attribute__((__gcc_struct__, __packed__)) // , __aligned__(1)))
 #else
-#define __CANLIB_PACKED __attribute__((__packed__)) // , __aligned__(1)))
+#define __CANLIB_PARKING __attribute__((__packed__)) // , __aligned__(1)))
+#endif
+
+#ifndef __CANLIB_ENDIAN_ORDER
+    #define __CANLIB_ENDIAN_ORDER 1094861636L // "ABCD"
+#endif
+#if !defined(__CANLIB_LITTLE_ENDIAN) && !defined(__CANLIB_BIG_ENDIAN) && !defined(__CANLIB_PDP_ENDIAN)
+    #if __CANLIB_ENDIAN_ORDER==0x41424344UL
+        #define __CANLIB_LITTLE_ENDIAN
+    #elif __CANLIB_ENDIAN_ORDER==0x44434241UL
+        #define __CANLIB_BIG_ENDIAN
+    #elif __CANLIB_ENDIAN_ORDER==0x42414443UL
+        #define __CANLIB_PDP_ENDIAN
+    #else
+        #error "canlib: endianess not supported"
+    #endif
+#endif
+
+#ifndef __CANLIB_{{ endianess }}
+    #error "canlib: endianess not supported"
 #endif
 
 #define CANLIB_BITMASK(b) (1 << (b))
@@ -107,7 +127,7 @@ typedef {{ network.name }}_{{ bit_set.base_type.name }} {{ network.name }}_{{ bi
 // ============== ENUMS ============== //
 
 {% for enum in schema.enums %}
-typedef enum __CANLIB_PACKED {
+typedef enum __CANLIB_PARKING {
     {%- for name in enum.items %}
     {{ network.name }}_{{ enum.name }}_{{ name }} = {{ loop.index0 }},
     {%- endfor %}
@@ -118,7 +138,7 @@ typedef enum __CANLIB_PACKED {
 
 {% for message in schema.messages %}
 {%- if message.has_conversions %}
-typedef struct __CANLIB_PACKED {
+typedef struct __CANLIB_PARKING {
 {%- if message.fields %}
 {%- for field in message.fields %}
 {%- if not field.conversion == None %}
@@ -137,7 +157,7 @@ typedef struct __CANLIB_PACKED {
 } {{ network.name }}_message_{{ message.name }}_conversion;
 {%- endif %}
 
-typedef struct __CANLIB_PACKED {
+typedef struct __CANLIB_PARKING {
 {%- if message.fields %}
 {%- for field in message.fields %}
     {{ network.name }}_{{ field.type.name }} {{ field.name }};
