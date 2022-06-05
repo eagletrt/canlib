@@ -19,7 +19,7 @@ message {{ name }} {
     {{ protobuf_type(field.type) }} {{ field.name }} = {{ loop.index }};
 {%- endif %}
 {%- endfor %}
-    uint64 _internal_timestamp = {{ (message.fields | length) + 1 }};
+    uint64 _inner_timestamp = {{ (message.fields | length) + 1 }};
 }
 {%- endfor %}
 {% endfor %}

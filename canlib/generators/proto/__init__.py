@@ -4,6 +4,7 @@ from pathlib import Path
 from shutil import which
 
 from canlib.common import utils
+from canlib.common.network import Network
 from canlib.common.schema import Schema
 from canlib.generators.proto import mapping, proto
 
@@ -12,22 +13,22 @@ def generate(networks_dir: Path, ids_dir: Path, output_dir: Path):
     print("====== proto ======")
 
     networks = utils.load_networks(networks_dir, ids_dir)
+    proto_dir = output_dir / ".proto"
 
     for network in networks:
-        dev_dir = output_dir / ".dev" / network.name
         output_dir_network = output_dir / network.name
 
-        utils.create_subtree(dev_dir)
+        utils.create_subtree(proto_dir)
         utils.create_subtree(output_dir_network)
 
         schema = Schema(network)
 
-        proto.generate(network, schema, dev_dir)
-        print(f"Generated protobuf files {dev_dir}")
+        proto.generate(network, schema, proto_dir)
+        print(f"Generated protobuf files {proto_dir}")
 
         mapping.generate(network, schema, output_dir_network)
 
-        compile_proto_files(dev_dir, output_dir_network, network.name)
+        compile_proto_files(network, proto_dir, output_dir_network)
         print(f"Compiled protobuf files {output_dir_network}")
 
 
@@ -42,7 +43,7 @@ def get_protoc_executable():
     return protoc
 
 
-def compile_proto_files(proto_dir, output_dir_network, network_name):
+def compile_proto_files(network: Network, proto_dir, output_dir_network):
     python_dir_network = output_dir_network / "python"
     utils.create_subtree(python_dir_network)
 
@@ -58,7 +59,7 @@ def compile_proto_files(proto_dir, output_dir_network, network_name):
             str(cpp_dir_network),
             "--python_out",
             str(python_dir_network),
-            str(proto_dir / "network.proto"),
+            str(proto_dir / f"{network.name}.proto"),
         ]
     )
 

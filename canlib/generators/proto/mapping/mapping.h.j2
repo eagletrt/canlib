@@ -4,10 +4,10 @@
 #include <string>
 #include <vector>
 
-#include "network.pb.h"
+#include "{{ network.name }}.pb.h"
 
 extern "C" {
-    #include "../../../../lib/{{ network.name }}/c/network.h"
+    #include "../../../lib/{{ network.name }}/c/network.h"
 }
 
 typedef struct {

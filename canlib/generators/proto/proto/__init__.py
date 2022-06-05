@@ -11,7 +11,7 @@ TEMPLATE_PROTO = j2.Template((BASE_DIR / "network.proto.j2").read_text())
 
 
 def generate(network: Network, schema: Schema, output_path: Path):
-    network_path = output_path / "network.proto"
+    network_path = output_path / f"{network.name}.proto"
     network_path.write_text(
         TEMPLATE_PROTO.render(
             network=network, schema=schema, protobuf_type=protobuf_type
