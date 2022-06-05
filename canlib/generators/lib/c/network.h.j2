@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include <inttypes.h>
 #include <stdbool.h>
 #include <assert.h>
 #include <stdint.h>
@@ -18,18 +19,6 @@ extern "C" {
 
 static_assert(sizeof(float) == 4, "canlib: sizeof(float) != 4 BYTES");
 static_assert(sizeof(double) == 8, "canlib: sizeof(double) != 8 BYTES");
-
-#endif // CANLIB_ASSERTS
-
-#ifndef CANLIB_SHARED
-#define CANLIB_SHARED
-
-/* We know it's PACKING but PARKING sounds a bit better ;) */
-#if defined(__MINGW32__)
-#define __CANLIB_PARKING __attribute__((__gcc_struct__, __packed__)) // , __aligned__(1)))
-#else
-#define __CANLIB_PARKING __attribute__((__packed__)) // , __aligned__(1)))
-#endif
 
 /* Is it little endian?
 
@@ -70,16 +59,51 @@ static_assert(sizeof(double) == 8, "canlib: sizeof(double) != 8 BYTES");
     #error "canlib: endianess not supported"
 #endif
 
+#endif // CANLIB_ASSERTS
+
+#ifndef CANLIB_SHARED
+#define CANLIB_SHARED
+
+/* We know it's PACKING but PARKING sounds a bit better ;) */
+#if defined(__MINGW32__)
+#define CANLIB_PARKING __attribute__((__gcc_struct__, __packed__)) // , __aligned__(1)))
+#else
+#define CANLIB_PARKING __attribute__((__packed__)) // , __aligned__(1)))
+#endif
+
+#define PRIf32 "f"
+#define PRIf64 "f"
+
+#endif // CANLIB_SHARED
+
+#ifndef CANLIB_BITMASK_UTILS
+#define CANLIB_BITMASK_UTILS
+
+#define CANLIB_BITMASK_TYPE uint8_t
+#define CANLIB_BITMASK_TYPE_BITS 8
+
+#define CANLIB_BITMASK_ARRAY(b) (1 << ((b) % CANLIB_BITMASK_TYPE_BITS))
+#define CANLIB_BITSLOT_ARRAY(b) ((b) / CANLIB_BITMASK_TYPE_BITS)
+#define CANLIB_BITSET_ARRAY(a, b) ((a)[CANLIB_BITSLOT_ARRAY(b)] |= CANLIB_BITMASK_ARRAY(b))
+#define CANLIB_BITCLEAR_ARRAY(a, b) ((a)[CANLIB_BITSLOT_ARRAY(b)] &= ~CANLIB_BITMASK_ARRAY(b))
+#define CANLIB_BITTEST_ARRAY(a, b) ((a)[CANLIB_BITSLOT_ARRAY(b)] & CANLIB_BITMASK_ARRAY(b))
+#define CANLIB_BITNSLOTS_ARRAY(nb) ((nb + CANLIB_BITMASK_TYPE_BITS - 1) / CANLIB_BITMASK_TYPE_BITS)
+
 #define CANLIB_BITMASK(b) (1 << (b))
 #define CANLIB_BITSET(a, b) ((a) |= CANLIB_BITMASK(b))
 #define CANLIB_BITCLEAR(a, b) ((a) &= ~CANLIB_BITMASK(b))
 #define CANLIB_BITTEST(a, b) ((a) & CANLIB_BITMASK(b))
 
-#endif // CANLIB_SHARED
+#endif // CANLIB_BITMASK_UTILS
 
 #ifndef CANLIB_SEPARATOR
 #define CANLIB_SEPARATOR ","
 #endif // CANLIB_SEPARATOR
+
+#ifndef CANLIB_MESSAGE_ID_TYPE
+#define CANLIB_MESSAGE_ID_TYPE
+typedef uint16_t canlib_message_id;
+#endif // CANLIB_MESSAGE_ID_TYPE
 
 // Info
 
@@ -122,12 +146,6 @@ typedef struct {
     void* message;
 } {{ network.name }}_devices[{{ network.name }}_NUMBER_OF_MESSAGES];
 
-// ============== FREQUENCIES ============== //
-
-{% for message in schema.messages %}
-#define {{ network.name }}_{{ message.name }}_INTERVAL {{ message.interval }}
-{%- endfor %}
-
 // ============== SIZES ============== //
 
 {% for message in schema.messages %}
@@ -147,7 +165,7 @@ typedef {{ network.name }}_{{ bit_set.base_type.name }} {{ network.name }}_{{ bi
 // ============== ENUMS ============== //
 
 {% for enum in schema.enums %}
-typedef enum __CANLIB_PARKING {
+typedef enum CANLIB_PARKING {
     {%- for name in enum.items %}
     {{ network.name }}_{{ enum.name }}_{{ name }} = {{ loop.index0 }},
     {%- endfor %}
@@ -158,7 +176,7 @@ typedef enum __CANLIB_PARKING {
 
 {% for message in schema.messages %}
 {%- if message.has_conversions %}
-typedef struct __CANLIB_PARKING {
+typedef struct CANLIB_PARKING {
 {%- if message.fields %}
 {%- for field in message.fields %}
 {%- if not field.conversion == None %}
@@ -177,7 +195,7 @@ typedef struct __CANLIB_PARKING {
 } {{ network.name }}_message_{{ message.name }}_conversion;
 {%- endif %}
 
-typedef struct __CANLIB_PARKING {
+typedef struct CANLIB_PARKING {
 {%- if message.fields %}
 {%- for field in message.fields %}
     {{ network.name }}_{{ field.type.name }} {{ field.name }};
@@ -240,11 +258,11 @@ int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer);
 // ============== UTILS ============== //
 
 void {{ network.name }}_devices_new({{ network.name }}_devices* map);
-int {{ network.name }}_devices_index_from_id(uint16_t message_id, {{ network.name }}_devices* map);
-void {{ network.name }}_fields_from_id(uint16_t message_id, FILE *buffer);
-void {{ network.name }}_string_from_id(uint16_t message_id, void* message, FILE *buffer);
+int {{ network.name }}_devices_index_from_id(canlib_message_id message_id, {{ network.name }}_devices* map);
+void {{ network.name }}_fields_from_id(canlib_message_id message_id, FILE *buffer);
+void {{ network.name }}_string_from_id(canlib_message_id message_id, void* message, FILE *buffer);
 void {{ network.name }}_deserialize_from_id(
-    uint16_t message_id,
+    canlib_message_id message_id,
     uint8_t* data,
     void* raw_message,
     void* message
@@ -252,7 +270,6 @@ void {{ network.name }}_deserialize_from_id(
     , {{ network.name }}_uint64 timestamp
 #endif // CANLIB_TIMESTAMP
 );
-
 
 #ifdef {{ network.name }}_IMPLEMENTATION
 
@@ -347,13 +364,13 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
     return sprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        "%ju" CANLIB_SEPARATOR
+        PRIXu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
         {% if field.conversion == None -%}
-        "{{ field.type.format_string }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
+        "%" {{ field.type.format_string }}{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
         {% else -%}
-        "{{ field.conversion.converted_type.format_string }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
+        "%" {{ field.conversion.converted_type.format_string }}{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
         {% endif -%}
         {%- endfor %},
 #ifdef CANLIB_TIMESTAMP
@@ -373,10 +390,10 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
     return sprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        "%ju" CANLIB_SEPARATOR
+        PRIXu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
-        "{{ field.type.format_string }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
+        "%" {{ field.type.format_string }}{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
         {%- endfor %},
 #ifdef CANLIB_TIMESTAMP
         message->_timestamp,
@@ -411,13 +428,13 @@ int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mess
     return fprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        "%ju" CANLIB_SEPARATOR
+        PRIXu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
         {% if field.conversion == None -%}
-        "{{ field.type.format_string }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
+        "%" {{ field.type.format_string }}{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
         {% else -%}
-        "{{ field.conversion.converted_type.format_string }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
+        "%" {{ field.conversion.converted_type.format_string }}{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
         {% endif -%}
         {%- endfor %},
 #ifdef CANLIB_TIMESTAMP
@@ -437,10 +454,10 @@ int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mess
     return fprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        "%ju" CANLIB_SEPARATOR
+        PRIXu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
-        "{{ field.type.format_string }}"{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
+        "%" {{ field.type.format_string }}{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
         {%- endfor %},
 #ifdef CANLIB_TIMESTAMP
         message->_timestamp,
@@ -474,7 +491,7 @@ int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer) {
 
 // ============== UTILS ============== //
 
-void {{ network.name }}_fields_from_id(uint16_t message_id, FILE *buffer) {
+void {{ network.name }}_fields_from_id(canlib_message_id message_id, FILE *buffer) {
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
@@ -486,7 +503,7 @@ void {{ network.name }}_fields_from_id(uint16_t message_id, FILE *buffer) {
     }
 }
 
-void {{ network.name }}_string_from_id(uint16_t message_id, void* message, FILE *buffer) {
+void {{ network.name }}_string_from_id(canlib_message_id message_id, void* message, FILE *buffer) {
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
@@ -507,7 +524,7 @@ void {{ network.name }}_string_from_id(uint16_t message_id, void* message, FILE 
 }
 
 void {{ network.name }}_deserialize_from_id(
-    uint16_t message_id,
+    canlib_message_id message_id,
     uint8_t* data,
     void* raw_message,
     void* message
@@ -550,18 +567,6 @@ void {{ network.name }}_deserialize_from_id(
     }
 }
 
-int {{ network.name }}_interval_from_id(uint16_t message_id) {
-    switch (message_id) {
-{%- for message_name, message_contents in network.messages.items() %}
-{%- for message_id in message_contents["id"].values() %}
-    case {{ message_id }}:
-        return {{ network.name }}_{{ message_name }}_INTERVAL;
-{%- endfor %}
-{%- endfor %}
-    }
-    return -1;
-}
-
 void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
 {%- set ns = namespace(inner_loop=0) -%}
 {%- for message_name, message_contents in network.messages.items() -%}
@@ -583,7 +588,7 @@ void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
 {%- endfor %}
 }
 
-int {{ network.name }}_devices_index_from_id(uint16_t message_id, {{ network.name }}_devices* map) {
+int {{ network.name }}_devices_index_from_id(canlib_message_id message_id, {{ network.name }}_devices* map) {
     for (int index = 0; index < {{ network.name }}_NUMBER_OF_MESSAGES; index++) {
         if ((*map)[index].id == message_id)
             return index;

@@ -10,6 +10,11 @@ extern "C" {
     #include "../../../lib/{{ network.name }}/c/network.h"
 }
 
+#ifndef CANLIB_MESSAGE_ID_TYPE
+#define CANLIB_MESSAGE_ID_TYPE
+typedef uint16_t canlib_message_id;
+#endif // CANLIB_MESSAGE_ID_TYPE
+
 typedef struct {
 {%- for message in schema.messages %}
 {%- for name, id in message.id.items() %}
@@ -22,12 +27,12 @@ typedef struct {
 {%- endfor %}
 } {{ network.name }}_proto_pack;
 
-void {{ network.name }}_proto_serialize_from_id(uint32_t id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map);
+void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map);
 void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map);
 
 #ifdef {{ network.name }}_MAPPING_IMPLEMENTATION
 
-void {{ network.name }}_proto_serialize_from_id(uint32_t id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map) {
+void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map) {
     int index = {{ network.name }}_devices_index_from_id(id, map);
 
     if (index == -1) return;
@@ -47,7 +52,7 @@ void {{ network.name }}_proto_serialize_from_id(uint32_t id, {{ network.name }}:
             proto_msg->set_{{ field.name }}({%- if field.type.__class__.__name__ == "Enum" -%}({{ network.name }}::{{ field.type.name }}){%- endif -%}msg->{{ field.name }});
 {%- endfor %}
 #ifdef CANLIB_TIMESTAMP
-            proto_msg->set__internal_timestamp(msg->_timestamp);
+            proto_msg->set__inner_timestamp(msg->_timestamp);
 #endif // CANLIB_TIMESTAMP
 {%- endif %}
             break;
@@ -70,7 +75,7 @@ void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ net
         pack->{{ name | lower }}(i).{{ field.name }}();
 {%- endfor %}
 #ifdef CANLIB_TIMESTAMP
-        map->{{ name }}[i]._timestamp = pack->{{ name | lower }}(i)._internal_timestamp();
+        map->{{ name }}[i]._timestamp = pack->{{ name | lower }}(i)._inner_timestamp();
 #endif // CANLIB_TIMESTAMP
     }
 {%- endfor %}

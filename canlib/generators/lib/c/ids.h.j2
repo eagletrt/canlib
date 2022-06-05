@@ -1,10 +1,20 @@
 #ifndef {{ network.name }}_IDS_H
 #define {{ network.name }}_IDS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <string.h>
 
+#ifndef CANLIB_MESSAGE_ID_TYPE
+#define CANLIB_MESSAGE_ID_TYPE
+typedef uint16_t canlib_message_id;
+#endif // CANLIB_MESSAGE_ID_TYPE
+
 #define {{ network.name }}_IDS_VERSION {{ network.version }}
+
 {% for topic_name, topic_id in network.topics.items() %}
 {%- set topic_messages = network.get_messages_by_topic(topic_name) %}
 /* TOPIC {{ topic_name }} */
@@ -21,14 +31,14 @@
 
 // ============== UTILS ============== //
 
-int {{ network.name }}_message_name_from_id(uint16_t id, char *buffer);
-bool {{ network.name }}_is_message_id(uint16_t message_id);
+int {{ network.name }}_message_name_from_id(canlib_message_id id, char *buffer);
+bool {{ network.name }}_is_message_id(canlib_message_id message_id);
 
 #define {{ network.name }}_MAX_MESSAGE_LENGTH {{ network.max_message_length() + 1 }}
 
 #ifdef {{ network.name }}_IDS_IMPLEMENTATION
 
-int {{ network.name }}_message_name_from_id(uint16_t id, char *buffer) {
+int {{ network.name }}_message_name_from_id(canlib_message_id id, char *buffer) {
     switch (id) {
 {%- for message in network.messages.values() %}
 {%- for message_sub_name in message["id"].keys() %}
@@ -43,7 +53,7 @@ int {{ network.name }}_message_name_from_id(uint16_t id, char *buffer) {
     return 1;
 }
 
-bool {{ network.name }}_is_message_id(uint16_t message_id) {
+bool {{ network.name }}_is_message_id(canlib_message_id message_id) {
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
@@ -55,5 +65,9 @@ bool {{ network.name }}_is_message_id(uint16_t message_id) {
 }
 
 #endif // {{ network.name }}_IDS_IMPLEMENTATION
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // {{ network.name }}_IDS_H
