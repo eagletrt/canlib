@@ -1,0 +1,129 @@
+#ifndef {{ network.name }}_WATCHDOG_H
+#define {{ network.name }}_WATCHDOG_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdint.h>
+#include <stdlib.h>
+#include <memory.h>
+
+#ifndef CANLIB_WATCHDOG_TIMESTAMP_TYPE
+#define CANLIB_WATCHDOG_TIMESTAMP_TYPE
+typedef uint32_t canlib_watchdog_timestamp;
+#endif // CANLIB_WATCHDOG_TIMESTAMP_TYPE
+
+#ifndef CANLIB_MESSAGE_ID_TYPE
+#define CANLIB_MESSAGE_ID_TYPE
+typedef uint16_t canlib_message_id;
+#endif // CANLIB_MESSAGE_ID_TYPE
+
+#ifndef CANLIB_WATCHDOG_CALLBACK
+#define CANLIB_WATCHDOG_CALLBACK
+typedef void (*canlib_watchdog_callback)(int);
+#endif // CANLIB_WATCHDOG_CALLBACK
+
+#ifndef CANLIB_BITMASK_UTILS
+#define CANLIB_BITMASK_UTILS
+
+#define CANLIB_BITMASK_TYPE uint8_t
+#define CANLIB_BITMASK_TYPE_BITS 8
+
+#define CANLIB_BITMASK_ARRAY(b) (1 << ((b) % CANLIB_BITMASK_TYPE_BITS))
+#define CANLIB_BITSLOT_ARRAY(b) ((b) / CANLIB_BITMASK_TYPE_BITS)
+#define CANLIB_BITSET_ARRAY(a, b) ((a)[CANLIB_BITSLOT_ARRAY(b)] |= CANLIB_BITMASK_ARRAY(b))
+#define CANLIB_BITCLEAR_ARRAY(a, b) ((a)[CANLIB_BITSLOT_ARRAY(b)] &= ~CANLIB_BITMASK_ARRAY(b))
+#define CANLIB_BITTEST_ARRAY(a, b) ((a)[CANLIB_BITSLOT_ARRAY(b)] & CANLIB_BITMASK_ARRAY(b))
+#define CANLIB_BITNSLOTS_ARRAY(nb) ((nb + CANLIB_BITMASK_TYPE_BITS - 1) / CANLIB_BITMASK_TYPE_BITS)
+
+#define CANLIB_BITMASK(b) (1 << (b))
+#define CANLIB_BITSET(a, b) ((a) |= CANLIB_BITMASK(b))
+#define CANLIB_BITCLEAR(a, b) ((a) &= ~CANLIB_BITMASK(b))
+#define CANLIB_BITTEST(a, b) ((a) & CANLIB_BITMASK(b))
+
+#endif // CANLIB_BITMASK_UTILS
+
+{% set count = namespace(value=0) -%}
+{%- for message in schema.messages %}
+{%- for message_sub_name, message_id in message.id.items() %}
+#define {{ network.name }}_watchdog_index_{{ message_sub_name }} {{ count.value }}
+{%- set count.value = count.value + 1 -%}
+{%- endfor %}
+{%- endfor %}
+
+{% for message in schema.messages %}
+#define {{ network.name }}_{{ message.name }}_INTERVAL {{ message.interval }}
+{%- endfor %}
+
+typedef struct {
+    uint8_t activated[{{ (network.get_message_count() / 8) | round(method='ceil') | int }}];
+    uint8_t timeout[{{ (network.get_message_count() / 8) | round(method='ceil') | int }}];
+    canlib_watchdog_timestamp last_reset[{{ network.get_message_count() }}];
+} {{ network.name }}_watchdog;
+
+int {{ network.name }}_watchdog_index_from_id(canlib_message_id id);
+
+{{ network.name }}_watchdog* {{ network.name }}_watchdog_new();
+void {{ network.name }}_watchdog_reset({{ network.name }}_watchdog *watchdog, canlib_message_id id, canlib_watchdog_timestamp timestamp);
+void {{ network.name }}_watchdog_reset_all({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp);
+void {{ network.name }}_watchdog_timeout({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp);
+
+#ifdef {{ network.name }}_WATCHDOG_IMPLEMENTATION
+
+int {{ network.name }}_watchdog_index_from_id(canlib_message_id id) {
+    switch (id) {
+{%- for message in schema.messages %}
+{%- for message_sub_name, message_id in message.id.items() %}
+        case {{ message_id }}: return {{ network.name }}_watchdog_index_{{ message_sub_name }};
+{%- endfor %}
+{%- endfor %}
+    }
+    return {{ network.get_message_count() }}; // invalid
+}
+
+{{ network.name }}_watchdog* {{ network.name }}_watchdog_new() {
+    {{ network.name }}_watchdog *watchdog = ({{ network.name }}_watchdog*)malloc(sizeof({{ network.name }}_watchdog));
+    if (watchdog == NULL) {
+        return NULL;
+    }
+    memset(watchdog->activated, 0, sizeof(watchdog->activated));
+    memset(watchdog->timeout, 0, sizeof(watchdog->timeout));
+    memset(watchdog->last_reset, 0, sizeof(watchdog->last_reset));
+    return watchdog;
+}
+
+void {{ network.name }}_watchdog_reset({{ network.name }}_watchdog *watchdog, canlib_message_id id, canlib_watchdog_timestamp timestamp) {
+    int index = {{ network.name }}_watchdog_index_from_id(id);
+    if (index < {{ network.get_message_count() }} && CANLIB_BITTEST_ARRAY(watchdog->activated, index)) {
+        CANLIB_BITCLEAR_ARRAY(watchdog->timeout, index);
+        watchdog->last_reset[index] = timestamp;
+    }
+}
+
+void {{ network.name }}_watchdog_reset_all({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp) {
+    memset(watchdog->timeout, 0, sizeof(watchdog->timeout));
+    memset(watchdog->last_reset, timestamp, sizeof(watchdog->last_reset));
+}
+
+void {{ network.name }}_watchdog_timeout({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp) {
+    memset(watchdog->timeout, 0, sizeof(watchdog->timeout));
+{%- for message in schema.messages %}
+{%- for message_sub_name, message_id in message.id.items() %}
+    if (
+        CANLIB_BITTEST_ARRAY(watchdog->activated, {{ network.name }}_watchdog_index_{{ message_sub_name }})
+        && timestamp - watchdog->last_reset[{{ network.name }}_watchdog_index_{{ message_sub_name }}] > {{ network.name }}_{{ message.name }}_INTERVAL
+    ) {
+        CANLIB_BITSET_ARRAY(watchdog->timeout, {{ network.name }}_watchdog_index_{{ message_sub_name }});
+    }
+{%- endfor %}
+{%- endfor %}
+}
+
+#endif // {{ network.name }}_WATCHDOG_IMPLEMENTATION
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // {{ network.name }}_NETWORK_H

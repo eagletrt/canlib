@@ -3,6 +3,12 @@
 #define test_IMPLEMENTATION
 #include "lib/test/c/network.h"
 
+#define test_IDS_IMPLEMENTATION
+#include "lib/test/c/ids.h"
+
+#define test_WATCHDOG_IMPLEMENTATION
+#include "lib/test/c/watchdog.h"
+
 void print_byte_as_bits(char val) {
   for (int i = 7; 0 <= i; i--) {
     printf("%c", (val & (1 << i)) ? '1' : '0');

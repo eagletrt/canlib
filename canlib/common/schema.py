@@ -18,17 +18,17 @@ class Number:
 
 
 NUMBER_TYPES = {
-    "bool": Number("bool", 1, "%d"),
-    "int8": Number("int8", 8, "%i"),
-    "uint8": Number("uint8", 8, "%u"),
-    "int16": Number("int16", 16, "%i"),
-    "uint16": Number("uint16", 16, "%u"),
-    "int32": Number("int32", 32, "%li"),
-    "uint32": Number("uint32", 32, "%lu"),
-    "int64": Number("int64", 64, "%lli"),
-    "uint64": Number("uint64", 64, "%llu"),
-    "float32": Number("float32", 32, "%f"),
-    "float64": Number("float64", 64, "%f"),
+    "bool": Number("bool", 1, "PRIu8"),
+    "int8": Number("int8", 8, "PRIi8"),
+    "uint8": Number("uint8", 8, "PRIu8"),
+    "int16": Number("int16", 16, "PRIi16"),
+    "uint16": Number("uint16", 16, "PRIu16"),
+    "int32": Number("int32", 32, "PRIi32"),
+    "uint32": Number("uint32", 32, "PRIu32"),
+    "int64": Number("int64", 64, "PRIi64"),
+    "uint64": Number("uint64", 64, "PRIu64"),
+    "float32": Number("float32", 32, "PRIf32"),
+    "float64": Number("float64", 64, "PRIf64"),
 }
 
 NUMBER_TYPES_BY_SIZE = {

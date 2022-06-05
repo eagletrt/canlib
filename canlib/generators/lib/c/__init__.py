@@ -11,6 +11,7 @@ BASE_DIR = Path(__file__).parent
 
 TEMPLATE_IDS = j2.Template((BASE_DIR / "ids.h.j2").read_text())
 TEMPLATE_NETWORK = j2.Template((BASE_DIR / "network.h.j2").read_text())
+TEMPLATE_WATCHDOG = j2.Template((BASE_DIR / "watchdog.h.j2").read_text())
 
 
 def generate(network: Network, schema: Schema, output_path: Path):
@@ -31,6 +32,9 @@ def generate(network: Network, schema: Schema, output_path: Path):
             endianess=endianess,
         )
     )
+
+    watchdog_path = output_path / "watchdog.h"
+    watchdog_path.write_text(TEMPLATE_WATCHDOG.render(network=network, schema=schema))
 
 
 def get_conversion(conversion: Conversion, network: Network, prefix: str):
