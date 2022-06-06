@@ -364,7 +364,7 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
     return sprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        PRIXu64 CANLIB_SEPARATOR
+        PRIu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
         {% if field.conversion == None -%}
@@ -390,7 +390,7 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
     return sprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        PRIXu64 CANLIB_SEPARATOR
+        PRIu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
         "%" {{ field.type.format_string }}{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
@@ -428,7 +428,7 @@ int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mess
     return fprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        PRIXu64 CANLIB_SEPARATOR
+        PRIu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
         {% if field.conversion == None -%}
@@ -454,7 +454,7 @@ int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mess
     return fprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        PRIXu64 CANLIB_SEPARATOR
+        PRIu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
         "%" {{ field.type.format_string }}{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
