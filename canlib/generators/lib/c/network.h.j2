@@ -143,7 +143,7 @@ typedef union {
 typedef struct {
     uint16_t id;
     void* raw_message;
-    void* message;
+    void* conversion_message;
 } {{ network.name }}_devices[{{ network.name }}_NUMBER_OF_MESSAGES];
 
 // ============== SIZES ============== //
@@ -578,9 +578,9 @@ void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
 {%- for schema_msg in schema.messages -%}
 {%- if schema_msg.name == message_name %}
 {%- if schema_msg.has_conversions %}
-    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].message = (void*) malloc(sizeof({{ network.name }}_message_{{ message_name }}_conversion));
+    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].conversion_message = (void*) malloc(sizeof({{ network.name }}_message_{{ message_name }}_conversion));
 {% else %}
-    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].message = NULL;
+    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].conversion_message = NULL;
 {% endif -%}
 {% endif -%}
 {% endfor -%}

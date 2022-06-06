@@ -1,7 +1,3 @@
 {
   "python.formatting.provider": "black",
-  "files.associations": {
-    "watchdog.h": "c",
-    "random": "c"
-  }
 }
