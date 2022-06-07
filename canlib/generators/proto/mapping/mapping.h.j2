@@ -6,9 +6,17 @@
 
 #include "{{ network.name }}.pb.h"
 
-extern "C" {
-    #include "../../../lib/{{ network.name }}/c/network.h"
-}
+#ifdef {{ network.name }}_IMPLEMENTATION
+#undef {{ network.name }}_IMPLEMENTATION
+#define __{{ network.name }}_IMPLEMENTATION
+#endif
+
+#include "../../../lib/{{ network.name }}/c/network.h"
+
+#ifdef __{{ network.name }}_IMPLEMENTATION
+#undef __{{ network.name }}_IMPLEMENTATION
+#define {{ network.name }}_IMPLEMENTATION
+#endif
 
 #ifndef CANLIB_MESSAGE_ID_TYPE
 #define CANLIB_MESSAGE_ID_TYPE
