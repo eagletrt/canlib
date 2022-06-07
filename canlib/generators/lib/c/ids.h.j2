@@ -7,6 +7,7 @@ extern "C" {
 
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 
 #ifndef CANLIB_MESSAGE_ID_TYPE
 #define CANLIB_MESSAGE_ID_TYPE
