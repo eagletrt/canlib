@@ -7,7 +7,12 @@ __pycache__
 /csv
 /.vscode
 
-/test/ids
-/test/lib
-/test/out
-/test/test.cpp
+/test/lib/ids
+/test/lib/lib
+/test/lib/out
+/test/lib/test.cpp
+
+/test/proto/ids
+/test/proto/lib
+/test/proto/out
+/test/proto/proto
