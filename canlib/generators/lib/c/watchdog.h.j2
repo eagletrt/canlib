@@ -58,7 +58,7 @@ typedef void (*canlib_watchdog_callback)(int);
 
 // Messages with this interval will be ignored by the watchdog as they are not
 // expected to be sent regularly.
-#define {{ network.name }}_{{ message.name }}_INTERVAL_ONCE -1
+#define {{ network.name }}_INTERVAL_ONCE -1
 
 typedef struct {
     uint8_t activated[{{ (network.get_message_count() / 8) | round(method='ceil') | int }}];
