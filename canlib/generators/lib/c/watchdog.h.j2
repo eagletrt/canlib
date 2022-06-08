@@ -56,6 +56,10 @@ typedef void (*canlib_watchdog_callback)(int);
 #define {{ network.name }}_{{ message.name }}_INTERVAL {{ message.interval }}
 {%- endfor %}
 
+// Messages with this interval will be ignored by the watchdog as they are not
+// expected to be sent regularly.
+#define {{ network.name }}_{{ message.name }}_INTERVAL_ONCE -1
+
 typedef struct {
     uint8_t activated[{{ (network.get_message_count() / 8) | round(method='ceil') | int }}];
     uint8_t timeout[{{ (network.get_message_count() / 8) | round(method='ceil') | int }}];
@@ -110,12 +114,14 @@ void {{ network.name }}_watchdog_timeout({{ network.name }}_watchdog *watchdog, 
     memset(watchdog->timeout, 0, sizeof(watchdog->timeout));
 {%- for message in schema.messages %}
 {%- for message_sub_name, message_id in message.id.items() %}
+{%- if message.interval != -1 %}
     if (
         CANLIB_BITTEST_ARRAY(watchdog->activated, {{ network.name }}_watchdog_index_{{ message_sub_name }})
         && timestamp - watchdog->last_reset[{{ network.name }}_watchdog_index_{{ message_sub_name }}] > {{ network.name }}_{{ message.name }}_INTERVAL
     ) {
         CANLIB_BITSET_ARRAY(watchdog->timeout, {{ network.name }}_watchdog_index_{{ message_sub_name }});
     }
+{%- endif %}
 {%- endfor %}
 {%- endfor %}
 }
