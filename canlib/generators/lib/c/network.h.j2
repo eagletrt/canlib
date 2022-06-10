@@ -71,6 +71,8 @@ static_assert(sizeof(double) == 8, "canlib: sizeof(double) != 8 BYTES");
 #define CANLIB_PARKING __attribute__((__packed__)) // , __aligned__(1)))
 #endif
 
+#define CANLIB_UNUSED(expr) do { (void)(expr); } while (0)
+
 #define PRIf32 "f"
 #define PRIf64 "f"
 
@@ -282,6 +284,9 @@ void {{ network.name }}_deserialize_from_id(
     {{ network.name }}_{{ field.type.name }} {{ field.name }}{% if not loop.last %},{% endif -%}
 {%- endfor %}
 ) {
+{%- if not message.fields %}
+    CANLIB_UNUSED(data);
+{%- endif %}
 {%- for index, fields in message.alignment.items() -%}
 {%- for field in serialize(network, fields) %}
     data[{{ index + loop.index0 }}] = {{ field }};
@@ -294,6 +299,10 @@ void {{ network.name }}_deserialize_from_id(
     uint8_t* data,
     {{ network.name }}_message_{{ message.name }}* message
 ) {
+{%- if not message.fields %}
+    CANLIB_UNUSED(data);
+    CANLIB_UNUSED(message);
+{%- endif %}
 {%- for index, fields in message.alignment.items() -%}
 {%- for field in serialize(network, fields, "message->") %}
     data[{{ index + loop.index0 }}] = {{ field }};
@@ -311,6 +320,12 @@ void {{ network.name }}_deserialize_{{ message.name }}(
     , {{ network.name }}_uint64 _timestamp
 #endif // CANLIB_TIMESTAMP
 ) {
+{%- if not message.fields %}
+    CANLIB_UNUSED(data);
+#ifdef CANLIB_TIMESTAMP
+    CANLIB_UNUSED(_timestamp);
+#endif // CANLIB_TIMESTAMP
+{%- endif %}
 #ifdef CANLIB_TIMESTAMP
     message->_timestamp = _timestamp;
 #endif // CANLIB_TIMESTAMP
@@ -328,6 +343,10 @@ void {{ network.name }}_raw_to_conversion_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}_conversion* conversion,
     {{ network.name }}_message_{{ message.name }}* raw
 ){
+{%- if not message.fields %}
+    CANLIB_UNUSED(conversion);
+    CANLIB_UNUSED(raw);
+{%- endif %}
 #ifdef CANLIB_TIMESTAMP
     conversion->_timestamp = raw->_timestamp;
 #endif // CANLIB_TIMESTAMP
@@ -343,6 +362,10 @@ void {{ network.name }}_conversion_to_raw_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}* raw,
     {{ network.name }}_message_{{ message.name }}_conversion* conversion
 ){
+{%- if not message.fields %}
+    CANLIB_UNUSED(raw);
+    CANLIB_UNUSED(conversion);
+{%- endif %}
 #ifdef CANLIB_TIMESTAMP
     raw->_timestamp = conversion->_timestamp;
 #endif // CANLIB_TIMESTAMP
@@ -381,8 +404,10 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
         {%- endfor %}
     );
 {%- else %}
+    CANLIB_UNUSED(message);
+    CANLIB_UNUSED(buffer);
     return 0;
-{% endif -%}
+{% endif %}
 }
 {% else -%}
 int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer) {
@@ -403,8 +428,10 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
         {%- endfor %}
     );
 {%- else %}
+    CANLIB_UNUSED(message);
+    CANLIB_UNUSED(buffer);
     return 0;
-{% endif -%}
+{% endif %}
 }
 {% endif -%}
 int {{ network.name }}_fields_{{ message.name }}(char* buffer) {
@@ -419,8 +446,9 @@ int {{ network.name }}_fields_{{ message.name }}(char* buffer) {
         {%- endfor %}
     );
 {%- else %}
+    CANLIB_UNUSED(buffer);
     return 0;
-{% endif -%}
+{% endif %}
 }
 {% if message.has_conversions -%}
 int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, FILE* buffer) {
@@ -445,8 +473,10 @@ int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mess
         {%- endfor %}
     );
 {%- else %}
+    CANLIB_UNUSED(message);
+    CANLIB_UNUSED(buffer);
     return 0;
-{% endif -%}
+{% endif %}
 }
 {% else -%}
 int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, FILE* buffer) {
@@ -467,8 +497,10 @@ int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mess
         {%- endfor %}
     );
 {%- else %}
+    CANLIB_UNUSED(message);
+    CANLIB_UNUSED(buffer);
     return 0;
-{% endif -%}
+{% endif %}
 }
 {% endif -%}
 
@@ -484,8 +516,9 @@ int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer) {
         {%- endfor %}
     );
 {%- else %}
+    CANLIB_UNUSED(buffer);
     return 0;
-{% endif -%}
+{% endif %}
 }
 {% endfor %}
 

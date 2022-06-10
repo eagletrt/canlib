@@ -21,11 +21,11 @@ typedef uint16_t canlib_message_id;
 /* TOPIC {{ topic_name }} */
 #define {{ network.name }}_topic_mask_{{ topic_name }} 0b00000011111
 {%- if topic_id is not none %}
-#define {{ network.name }}_topic_filter_{{ topic_name }} 0b{{ "{0:>011b}".format(topic_id) }}
+#define {{ network.name }}_topic_filter_{{ topic_name }} 0b{{ "{0:>011b}".format(topic_id) }} // dec: {{ topic_id }} hex: {{ '0x{:X}'.format(topic_id) }}
 {%- endif %}
 {% for message in topic_messages.values() %}
 {%- for message_sub_name, message_id in message["id"].items() %}
-#define {{ network.name }}_id_{{ message_sub_name }} 0b{{ "{0:>011b}".format(message_id) }}
+#define {{ network.name }}_id_{{ message_sub_name }} 0b{{ "{0:>011b}".format(message_id) }} // dec: {{ message_id }} hex: {{ '0x{:X}'.format(message_id) }}
 {%- endfor %}
 {%- endfor %}
 {% endfor %}

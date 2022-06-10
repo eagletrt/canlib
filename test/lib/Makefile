@@ -4,9 +4,9 @@ all:
 
 	mkdir -p out
 
-	gcc test.c -o out/test_c
+	gcc -Wall test.c -o out/test_c
 	cp test.c test.cpp
-	g++ test.cpp -o out/test_cpp
+	g++ -Wall test.cpp -o out/test_cpp
 
 	@echo "=================="
 	@echo "Starting LIB tests"
