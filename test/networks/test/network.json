@@ -518,7 +518,9 @@
             "sending": ["STEER"],
             "receiving": ["TLM"],
             "description": "Send a marker to telemetry",
-            "contents": {}
+            "contents": {
+                "pump_speed": "float32"
+            }
         },
         {
             "name": "HV_CELLS_VOLTAGE",

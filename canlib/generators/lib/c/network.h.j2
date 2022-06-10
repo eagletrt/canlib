@@ -138,8 +138,10 @@ typedef union {
 
 #ifdef __cplusplus
 #define {{ network.name }}_float32_to_bytes(float, index) (reinterpret_cast<{{ network.name }}_uint8*>(&((float)))[(index)])
+#define {{ network.name }}_float64_to_bytes(float, index) (reinterpret_cast<{{ network.name }}_uint8*>(&((float)))[(index)])
 #else
-#define {{ network.name }}_float32_to_bytes(float, index) ({({{ network.name }}_float32_helper){{ network.name }}_float32_helper.value = (f)}.bytes[(index)])
+#define {{ network.name }}_float32_to_bytes(float, index) ((({{ network.name }}_float32_helper) (float)).bytes[(index)])
+#define {{ network.name }}_float64_to_bytes(float, index) ((({{ network.name }}_float64_helper) (float)).bytes[(index)])
 #endif
 
 typedef struct {

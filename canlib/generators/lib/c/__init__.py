@@ -64,7 +64,7 @@ def serialize_byte(fields: List[Field], prefix: str) -> str:
 def serialize_big(network: Network, field: Field, prefix: str) -> str:
     if isinstance(field.type, Number) and field.type.name in ["float32", "float64"]:
         return [
-            f"{network.name}_float32_to_bytes({prefix}{field.name}, {byte_index})"
+            f"{network.name}_{field.type.name}_to_bytes({prefix}{field.name}, {byte_index})"
             for byte_index in range(field.bit_size // 8)
         ]
     elif field.bit_size > 8:
@@ -89,7 +89,7 @@ def serialize(network: Network, fields: List[Field], prefix: str = ""):
 
 def deserialize_float_constructor(index: int, field: Field) -> str:
     fields = [f"data[{index + offset}]" for offset in range(field.bit_size // 8)]
-    return f"{{{' ,'.join(fields)}}}"
+    return f"{{{{{', '.join(fields)}}}}}"
 
 
 def deserialize_bytes(index: int, field: Field) -> str:
