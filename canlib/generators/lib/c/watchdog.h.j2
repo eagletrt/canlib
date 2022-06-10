@@ -67,6 +67,7 @@ typedef struct {
 } {{ network.name }}_watchdog;
 
 int {{ network.name }}_watchdog_index_from_id(canlib_message_id id);
+int {{ network.name }}_watchdog_interval_from_id(uint16_t message_id);
 
 {{ network.name }}_watchdog* {{ network.name }}_watchdog_new();
 void {{ network.name }}_watchdog_reset({{ network.name }}_watchdog *watchdog, canlib_message_id id, canlib_watchdog_timestamp timestamp);
@@ -74,6 +75,18 @@ void {{ network.name }}_watchdog_reset_all({{ network.name }}_watchdog *watchdog
 void {{ network.name }}_watchdog_timeout({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp);
 
 #ifdef {{ network.name }}_WATCHDOG_IMPLEMENTATION
+
+int {{ network.name }}_watchdog_interval_from_id(uint16_t message_id) {
+    switch (message_id) {
+{%- for message_name, message_contents in network.messages.items() %}
+{%- for message_id in message_contents["id"].values() %}
+    case {{ message_id }}:
+        return {{ network.name }}_{{ message_name }}_INTERVAL;
+{%- endfor %}
+{%- endfor %}
+    }
+    return -1;
+}
 
 int {{ network.name }}_watchdog_index_from_id(canlib_message_id id) {
     switch (id) {
