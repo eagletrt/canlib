@@ -35,7 +35,9 @@ NUMBER_TYPES_BY_SIZE = {
     1: NUMBER_TYPES["uint8"],
     2: NUMBER_TYPES["uint16"],
     3: NUMBER_TYPES["uint32"],
-    4: NUMBER_TYPES["uint64"],
+    4: NUMBER_TYPES["uint32"],
+    5: NUMBER_TYPES["uint64"],
+    6: NUMBER_TYPES["uint64"],
 }
 
 
@@ -207,7 +209,7 @@ class BitSet:
         self.name = name
         self.items = definition.get("items", [])
 
-        self.bit_size = 1 << (math.ceil(len(self.items) / 8) * 8 - 1).bit_length()
+        self.bit_size = (len(self.items) + 7) & (-8)
         self.byte_size = max(self.bit_size // 8, 1)
         self.base_type = NUMBER_TYPES_BY_SIZE[self.byte_size]
 
