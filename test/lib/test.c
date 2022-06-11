@@ -1,5 +1,7 @@
 #include <stdio.h>
 
+#define CANLIB_TIMESTAMP
+
 #define test_IMPLEMENTATION
 #include "lib/test/c/network.h"
 

@@ -179,26 +179,6 @@ typedef enum CANLIB_PARKING {
 // Structs
 
 {% for message in schema.messages %}
-{%- if message.has_conversions %}
-typedef struct CANLIB_PARKING {
-{%- if message.fields %}
-{%- for field in message.fields %}
-{%- if not field.conversion == None %}
-    {{ network.name }}_{{ field.conversion.converted_type.name }} {{ field.name }};
-{%- else  %}
-    {{ network.name }}_{{ field.type.name }} {{ field.name }};
-{%- endif -%}
-
-{%- endfor %}
-{%- else %}
-    {{ network.name }}_uint8 _placeholder; // C++ doesn't like empty structs
-{%- endif %}
-#ifdef CANLIB_TIMESTAMP
-    {{ network.name }}_uint64 _timestamp;
-#endif // CANLIB_TIMESTAMP
-} {{ network.name }}_message_{{ message.name }}_conversion;
-{%- endif %}
-
 typedef struct CANLIB_PARKING {
 {%- if message.fields %}
 {%- for field in message.fields %}
@@ -211,6 +191,25 @@ typedef struct CANLIB_PARKING {
     {{ network.name }}_uint64 _timestamp;
 #endif // CANLIB_TIMESTAMP
 } {{ network.name }}_message_{{ message.name }};
+
+{%- if message.has_conversions %}
+typedef struct CANLIB_PARKING {
+{%- if message.fields %}
+{%- for field in message.fields %}
+{%- if not field.conversion == None %}
+    {{ network.name }}_{{ field.conversion.converted_type.name }} {{ field.name }};
+{%- else  %}
+    {{ network.name }}_{{ field.type.name }} {{ field.name }};
+{%- endif %}
+{%- endfor %}
+{%- else %}
+    {{ network.name }}_uint8 _placeholder; // C++ doesn't like empty structs
+{%- endif %}
+#ifdef CANLIB_TIMESTAMP
+    {{ network.name }}_uint64 _timestamp;
+#endif // CANLIB_TIMESTAMP
+} {{ network.name }}_message_{{ message.name }}_conversion;
+{%- endif %}
 {% endfor %}
 
 {% for message in schema.messages %}
@@ -234,13 +233,38 @@ void {{ network.name }}_deserialize_{{ message.name }}(
 #endif // CANLIB_TIMESTAMP
 );
 {%- if message.has_conversions %}
-void {{ network.name }}_raw_to_conversion_{{ message.name }}(
+void {{ network.name }}_raw_to_conversion_struct_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}_conversion* conversion,
     {{ network.name }}_message_{{ message.name }}* raw
 );
-void {{ network.name }}_conversion_to_raw_{{ message.name }}(
+
+void {{ network.name }}_conversion_to_raw_struct_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}* raw,
     {{ network.name }}_message_{{ message.name }}_conversion* conversion
+);
+
+void {{ network.name }}_conversion_to_raw_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}* raw{% if message.fields %},{% endif %}
+{%- for field in message.fields %}
+{%- if not field.conversion == None %}
+    {{ network.name }}_{{ field.conversion.converted_type.name }} {{ field.name }}
+{%- else  %}
+    {{ network.name }}_{{ field.type.name }} {{ field.name }}
+{%- endif -%}{% if not loop.last %},{% endif -%}
+{%- endfor %}
+#ifdef CANLIB_TIMESTAMP
+    , {{ network.name }}_uint64 _timestamp
+#endif // CANLIB_TIMESTAMP
+);
+
+void {{ network.name }}_raw_to_conversion_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}_conversion* conversion{% if message.fields %},{% endif %}
+{%- for field in message.fields %}
+    {{ network.name }}_{{ field.type.name }} {{ field.name }}{% if not loop.last %},{% endif -%}
+{%- endfor %}
+#ifdef CANLIB_TIMESTAMP
+    , {{ network.name }}_uint64 _timestamp
+#endif // CANLIB_TIMESTAMP
 );
 {%- endif %}
 {% if message.has_conversions -%}
@@ -342,6 +366,31 @@ void {{ network.name }}_deserialize_{{ message.name }}(
 // ============== CONVERSION ============== //
 
 void {{ network.name }}_raw_to_conversion_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}_conversion* conversion{% if message.fields %},{% endif %}
+{%- for field in message.fields %}
+    {{ network.name }}_{{ field.type.name }} {{ field.name }}{% if not loop.last %},{% endif -%}
+{%- endfor %}
+#ifdef CANLIB_TIMESTAMP
+    , {{ network.name }}_uint64 _timestamp
+#endif // CANLIB_TIMESTAMP
+){
+{%- if not message.fields %}
+    CANLIB_UNUSED(conversion);
+    CANLIB_UNUSED(raw);
+{%- endif %}
+#ifdef CANLIB_TIMESTAMP
+    conversion->_timestamp = _timestamp;
+#endif // CANLIB_TIMESTAMP
+{%- for field in message.fields -%}
+{%- if field.conversion == None %}
+    conversion->{{ field.name }} = {{ field.name }};
+{%- else %}
+    conversion->{{ field.name }} = {{ get_deconversion(field.conversion, network, field.name) }};
+{%- endif %}
+{%- endfor %}
+}
+
+void {{ network.name }}_raw_to_conversion_struct_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}_conversion* conversion,
     {{ network.name }}_message_{{ message.name }}* raw
 ){
@@ -360,7 +409,37 @@ void {{ network.name }}_raw_to_conversion_{{ message.name }}(
 {%- endif %}
 {%- endfor %}
 }
+
 void {{ network.name }}_conversion_to_raw_{{ message.name }}(
+    {{ network.name }}_message_{{ message.name }}* raw{% if message.fields %},{% endif %}
+{%- for field in message.fields %}
+{%- if not field.conversion == None %}
+    {{ network.name }}_{{ field.conversion.converted_type.name }} {{ field.name }}
+{%- else  %}
+    {{ network.name }}_{{ field.type.name }} {{ field.name }}
+{%- endif -%}{% if not loop.last %},{% endif -%}
+{%- endfor %}
+#ifdef CANLIB_TIMESTAMP
+    , {{ network.name }}_uint64 _timestamp
+#endif // CANLIB_TIMESTAMP
+){
+{%- if not message.fields %}
+    CANLIB_UNUSED(raw);
+    CANLIB_UNUSED(conversion);
+{%- endif %}
+#ifdef CANLIB_TIMESTAMP
+    raw->_timestamp = _timestamp;
+#endif // CANLIB_TIMESTAMP
+{%- for field in message.fields -%}
+{%- if field.conversion == None %}
+    raw->{{ field.name }} = {{ field.name }};
+{%- else %}
+    raw->{{ field.name }} = {{get_conversion(field.conversion, network, field.name) }};
+{%- endif %}
+{%- endfor %}
+}
+
+void {{ network.name }}_conversion_to_raw_struct_{{ message.name }}(
     {{ network.name }}_message_{{ message.name }}* raw,
     {{ network.name }}_message_{{ message.name }}_conversion* conversion
 ){
@@ -389,7 +468,7 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
     return sprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        PRIu64 CANLIB_SEPARATOR
+        "%" PRIu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
         {% if field.conversion == None -%}
@@ -417,7 +496,7 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
     return sprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        PRIu64 CANLIB_SEPARATOR
+        "%" PRIu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
         "%" {{ field.type.format_string }}{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
@@ -458,7 +537,7 @@ int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mess
     return fprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        PRIu64 CANLIB_SEPARATOR
+        "%" PRIu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
         {% if field.conversion == None -%}
@@ -486,7 +565,7 @@ int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mess
     return fprintf(
         buffer,
 #ifdef CANLIB_TIMESTAMP
-        PRIu64 CANLIB_SEPARATOR
+        "%" PRIu64 CANLIB_SEPARATOR
 #endif // CANLIB_TIMESTAMP
         {%- for field in message.fields %}
         "%" {{ field.type.format_string }}{% if not loop.last %} CANLIB_SEPARATOR {% endif -%}
@@ -581,7 +660,7 @@ void {{ network.name }}_deserialize_from_id(
                 , timestamp
                 #endif
             );
-            {{ network.name }}_raw_to_conversion_{{ message_name }}(
+            {{ network.name }}_raw_to_conversion_struct_{{ message_name }}(
                 ({{ network.name }}_message_{{message_name}}_conversion*) message,
                 ({{ network.name }}_message_{{message_name}}*) raw_message
             );
