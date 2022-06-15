@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 from typing import Optional
+from canlib.common.limits import ALLOWED_INTERVALS, RESERVED_KEYWORKDS
 
 from canlib.common.network import Network
 
@@ -49,6 +50,11 @@ class Schema:
         self.enums = []
 
         for name, definition in network.types.items():
+            if name in RESERVED_KEYWORKDS:
+                raise ValueError(
+                    f"Type name {name} is reserved, network {network.name}"
+                )
+
             if definition["type"] == "bitset":
                 type = BitSet(name, definition)
                 self.types[name] = type
@@ -77,14 +83,20 @@ class Message:
         self.alignment = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: []}
         self.has_conversions = False
 
+        if self.interval not in ALLOWED_INTERVALS:
+            raise ValueError(f"Invalid interval {self.interval}, message {name}")
+
         fields = []
-        for name, item_type in message["contents"].items():
+        for item_name, item_type in message["contents"].items():
+            if item_name in RESERVED_KEYWORKDS:
+                raise ValueError(f"Field name {item_name} is reserved, message {name}")
             if type(item_type) == dict:
-                conversion = Conversion.from_dict(name, item_type)
-                fields.append(Field(name, conversion.raw_type.name, types, conversion))
+                conversion = Conversion.from_dict(item_name, item_type)
+                raw_type_name = conversion.raw_type.name
+                fields.append(Field(item_name, raw_type_name, types, conversion))
                 self.has_conversions = True
             else:
-                fields.append(Field(name, item_type, types))
+                fields.append(Field(item_name, item_type, types))
 
         self.fields = sorted(fields, key=lambda field: field.bit_size, reverse=True)
 

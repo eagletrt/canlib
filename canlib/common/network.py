@@ -1,4 +1,5 @@
 from pathlib import Path
+from canlib.common.limits import RESERVED_KEYWORKDS
 
 from canlib.config import CAN_CONFIG_VALIDATION_SCHEMA, NETWORK_VALIDATION_SCHEMA
 
@@ -33,13 +34,18 @@ class Network:
         types = network.get("types", {})
 
         for message in network["messages"]:
+            message_name = message.pop("name")
             if "topic" in message:
-                topics[message["topic"]] = None
+                topic = message["topic"]
+                if topic in RESERVED_KEYWORKDS:
+                    raise ValueError(f"Topic {topic} reserved, message {message_name}")
+                topics[topic] = None
             else:
                 topics["FIXED_IDS"] = None
                 message["topic"] = "FIXED_IDS"
 
-            message_name = message.pop("name")
+            if name in RESERVED_KEYWORKDS:
+                raise ValueError(f"Message {message_name} reserved, network {name}")
             messages[message_name] = message
 
         can_config = utils.load_json(can_config_path, CAN_CONFIG_VALIDATION_SCHEMA)
