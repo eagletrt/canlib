@@ -294,8 +294,7 @@ int {{ network.name }}_to_string_file_from_id(canlib_message_id message_id, void
 int {{ network.name }}_deserialize_from_id(
     canlib_message_id message_id,
     uint8_t* data,
-    void* raw_message,
-    void* message
+    void** message
 #ifdef CANLIB_TIMESTAMP
     , {{ network.name }}_uint64 timestamp
 #endif // CANLIB_TIMESTAMP
@@ -674,8 +673,7 @@ int {{ network.name }}_to_string_file_from_id(canlib_message_id message_id, void
 int {{ network.name }}_deserialize_from_id(
     canlib_message_id message_id,
     uint8_t* data,
-    void* raw_message,
-    void* message
+    void** message
 #ifdef CANLIB_TIMESTAMP
     , {{ network.name }}_uint64 timestamp
 #endif // CANLIB_TIMESTAMP
@@ -683,32 +681,37 @@ int {{ network.name }}_deserialize_from_id(
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
-        case {{ message_id }}:
+        case {{ message_id }}: {
 {%- for schema_msg in schema.messages -%}
 {%- if schema_msg.name == message_name %}
 {%- if schema_msg.has_conversions %}
+            {{ network.name }}_message_{{ message_name }}* raw_message = ({{ network.name }}_message_{{ message_name }}*) malloc(sizeof({{ network.name }}_message_{{message_name}}));
+            *message = malloc(sizeof({{ network.name }}_message_{{message_name}}_conversion));
             {{ network.name }}_deserialize_{{ message_name }}(
-                ({{ network.name }}_message_{{ message_name }}*) raw_message,
+                raw_message,
                 data
                 #ifdef CANLIB_TIMESTAMP
                 , timestamp
                 #endif
             );
             {{ network.name }}_raw_to_conversion_struct_{{ message_name }}(
-                ({{ network.name }}_message_{{message_name}}_conversion*) message,
+                ({{ network.name }}_message_{{message_name}}_conversion*) *message,
                 ({{ network.name }}_message_{{message_name}}*) raw_message
             );
+            free(raw_message);
             return sizeof({{ network.name }}_message_{{message_name}}_conversion);
 {%- else %}
+            *message = malloc(sizeof({{ network.name }}_message_{{message_name}}));
             {{ network.name }}_deserialize_{{ message_name }}(
-                ({{ network.name }}_message_{{ message_name }}*) raw_message,
+                ({{ network.name }}_message_{{ message_name }}*) *message,
                 data
                 #ifdef CANLIB_TIMESTAMP
                 , timestamp
                 #endif
             );
             return sizeof({{ network.name }}_message_{{message_name}});
-{%- endif -%}
+{%- endif %}
+        }
 {%- endif -%}
 {%- endfor %}
 {%- endfor %}
