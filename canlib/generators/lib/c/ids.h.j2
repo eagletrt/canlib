@@ -45,13 +45,13 @@ int {{ network.name }}_message_name_from_id(canlib_message_id id, char *buffer) 
 {%- for message_sub_name in message["id"].keys() %}
         case {{ network.name }}_id_{{ message_sub_name }}:
             strcpy(buffer, "{{ message_sub_name }}");
-            return 0;
+            return {{ message_sub_name | length }};
 {%- endfor %}
 {%- endfor %}
         default:
             strcpy(buffer, ""); // Unknown message
     }
-    return 1;
+    return 0;
 }
 
 bool {{ network.name }}_is_message_id(canlib_message_id message_id) {
