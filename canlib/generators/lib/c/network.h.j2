@@ -287,9 +287,11 @@ int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer);
 
 void {{ network.name }}_devices_new({{ network.name }}_devices* map);
 int {{ network.name }}_devices_index_from_id(canlib_message_id message_id, {{ network.name }}_devices* map);
-void {{ network.name }}_fields_from_id(canlib_message_id message_id, FILE *buffer);
-void {{ network.name }}_string_from_id(canlib_message_id message_id, void* message, FILE *buffer);
-void {{ network.name }}_deserialize_from_id(
+int {{ network.name }}_fields_from_id(canlib_message_id message_id, char *buffer);
+int {{ network.name }}_to_string_from_id(canlib_message_id message_id, void* message, char *buffer);
+int {{ network.name }}_fields_file_from_id(canlib_message_id message_id, FILE *buffer);
+int {{ network.name }}_to_string_file_from_id(canlib_message_id message_id, void* message, FILE *buffer);
+int {{ network.name }}_deserialize_from_id(
     canlib_message_id message_id,
     uint8_t* data,
     void* raw_message,
@@ -605,19 +607,19 @@ int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer) {
 
 // ============== UTILS ============== //
 
-void {{ network.name }}_fields_from_id(canlib_message_id message_id, FILE *buffer) {
+int {{ network.name }}_fields_from_id(canlib_message_id message_id, char* buffer) {
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
     case {{ message_id }}:
-        {{ network.name }}_fields_file_{{ message_name }}(buffer);
-        break;
+        return {{ network.name }}_fields_{{ message_name }}(buffer);
 {%- endfor %}
 {%- endfor %}
     }
+    return 0;
 }
 
-void {{ network.name }}_string_from_id(canlib_message_id message_id, void* message, FILE *buffer) {
+int {{ network.name }}_to_string_from_id(canlib_message_id message_id, void* message, char* buffer) {
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
@@ -625,19 +627,51 @@ void {{ network.name }}_string_from_id(canlib_message_id message_id, void* messa
 {%- for schema_msg in schema.messages -%}
 {%- if schema_msg.name == message_name %}
 {%- if schema_msg.has_conversions %}
-            {{ network.name }}_to_string_file_{{ message_name }}(({{ network.name }}_message_{{ message_name }}_conversion*) message, buffer);
+            return {{ network.name }}_to_string_{{ message_name }}(({{ network.name }}_message_{{ message_name }}_conversion*) message, buffer);
 {%- else %}
-            {{ network.name }}_to_string_file_{{ message_name }}(({{ network.name }}_message_{{ message_name }}*) message, buffer);
+            return {{ network.name }}_to_string_{{ message_name }}(({{ network.name }}_message_{{ message_name }}*) message, buffer);
 {%- endif -%}
 {%- endif -%}
 {%- endfor %}
-        break;
 {%- endfor %}
 {%- endfor %}
     }
+    return 0;
 }
 
-void {{ network.name }}_deserialize_from_id(
+int {{ network.name }}_fields_file_from_id(canlib_message_id message_id, FILE *buffer) {
+    switch (message_id) {
+{%- for message_name, message_contents in network.messages.items() %}
+{%- for message_id in message_contents["id"].values() %}
+    case {{ message_id }}:
+        return {{ network.name }}_fields_file_{{ message_name }}(buffer);
+{%- endfor %}
+{%- endfor %}
+    }
+    return 0;
+}
+
+int {{ network.name }}_to_string_file_from_id(canlib_message_id message_id, void* message, FILE *buffer) {
+    switch (message_id) {
+{%- for message_name, message_contents in network.messages.items() %}
+{%- for message_id in message_contents["id"].values() %}
+        case {{ message_id }}:
+{%- for schema_msg in schema.messages -%}
+{%- if schema_msg.name == message_name %}
+{%- if schema_msg.has_conversions %}
+            return {{ network.name }}_to_string_file_{{ message_name }}(({{ network.name }}_message_{{ message_name }}_conversion*) message, buffer);
+{%- else %}
+            return {{ network.name }}_to_string_file_{{ message_name }}(({{ network.name }}_message_{{ message_name }}*) message, buffer);
+{%- endif -%}
+{%- endif -%}
+{%- endfor %}
+{%- endfor %}
+{%- endfor %}
+    }
+    return 0;
+}
+
+int {{ network.name }}_deserialize_from_id(
     canlib_message_id message_id,
     uint8_t* data,
     void* raw_message,
@@ -664,6 +698,7 @@ void {{ network.name }}_deserialize_from_id(
                 ({{ network.name }}_message_{{message_name}}_conversion*) message,
                 ({{ network.name }}_message_{{message_name}}*) raw_message
             );
+            return sizeof({{ network.name }}_message_{{message_name}}_conversion);
 {%- else %}
             {{ network.name }}_deserialize_{{ message_name }}(
                 ({{ network.name }}_message_{{ message_name }}*) raw_message,
@@ -672,13 +707,14 @@ void {{ network.name }}_deserialize_from_id(
                 , timestamp
                 #endif
             );
+            return sizeof({{ network.name }}_message_{{message_name}});
 {%- endif -%}
 {%- endif -%}
 {%- endfor %}
-        break;
 {%- endfor %}
 {%- endfor %}
     }
+    return 0;
 }
 
 void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
