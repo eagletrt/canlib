@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import math
 from typing import Optional
-from canlib.common.limits import ALLOWED_INTERVALS, RESERVED_KEYWORKDS
 
+from canlib.common.limits import ALLOWED_INTERVALS, RESERVED_KEYWORKDS
 from canlib.common.network import Network
 
 

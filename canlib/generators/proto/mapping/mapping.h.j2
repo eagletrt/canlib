@@ -41,7 +41,7 @@ void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ net
 #ifdef {{ network.name }}_MAPPING_IMPLEMENTATION
 
 void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map) {
-    int index = {{ network.name }}_devices_index_from_id(id, map);
+    int index = {{ network.name }}_index_from_id(id);
 
     if (index == -1) return;
 
@@ -50,9 +50,9 @@ void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network
 {%- for name, id in message.id.items() %}
         case {{ id }}: {
 {%- if message.has_conversions %}
-            {{ network.name }}_message_{{ message.name }}_conversion* msg = ({{ network.name }}_message_{{ message.name }}_conversion*) (*map)[index].conversion_message;
+            {{ network.name }}_message_{{ message.name }}_conversion* msg = ({{ network.name }}_message_{{ message.name }}_conversion*) (*map)[index].message_conversion;
 {%- else %}
-            {{ network.name }}_message_{{ message.name }}* msg = ({{ network.name }}_message_{{ message.name }}*) (*map)[index].raw_message;
+            {{ network.name }}_message_{{ message.name }}* msg = ({{ network.name }}_message_{{ message.name }}*) (*map)[index].message_raw;
 {%- endif %}
             {{ network.name }}::{{ name }}* proto_msg = pack->add_{{ name | lower }}();
 {%- if message.fields %}

@@ -5,6 +5,7 @@
 extern "C" {
 #endif
 
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdbool.h>
@@ -19,42 +20,35 @@ typedef uint16_t canlib_message_id;
 {% for topic_name, topic_id in network.topics.items() %}
 {%- set topic_messages = network.get_messages_by_topic(topic_name) %}
 /* TOPIC {{ topic_name }} */
-#define {{ network.name }}_topic_mask_{{ topic_name }} 0b00000011111
+#define {{ network.name }}_TOPIC_MASK_{{ topic_name }} 0b00000011111
 {%- if topic_id is not none %}
-#define {{ network.name }}_topic_filter_{{ topic_name }} 0b{{ "{0:>011b}".format(topic_id) }} // dec: {{ topic_id }} hex: {{ '0x{:X}'.format(topic_id) }}
+#define {{ network.name }}_TOPIC_FILTER_{{ topic_name }} {{ '0x{:X}'.format(topic_id) }} // dec: {{ topic_id }} bin: {{ "0b{0:>011b}".format(topic_id) }}
 {%- endif %}
 {% for message in topic_messages.values() %}
 {%- for message_sub_name, message_id in message["id"].items() %}
-#define {{ network.name }}_id_{{ message_sub_name }} 0b{{ "{0:>011b}".format(message_id) }} // dec: {{ message_id }} hex: {{ '0x{:X}'.format(message_id) }}
+#define {{ network.name }}_ID_{{ message_sub_name }} {{ '0x{:X}'.format(message_id) }} // dec: {{ message_id }} bin: {{ "0b{0:>011b}".format(message_id) }}
 {%- endfor %}
 {%- endfor %}
 {% endfor %}
 
+#define {{ network.name }}_MAX_MESSAGE_NAME_LENGTH {{ network.max_message_length() + 1 }}
+
 // ============== UTILS ============== //
 
-int {{ network.name }}_message_name_from_id(canlib_message_id id, char *buffer);
-bool {{ network.name }}_is_message_id(canlib_message_id message_id);
-
-#define {{ network.name }}_MAX_MESSAGE_LENGTH {{ network.max_message_length() + 1 }}
-
-#ifdef {{ network.name }}_IDS_IMPLEMENTATION
-
-int {{ network.name }}_message_name_from_id(canlib_message_id id, char *buffer) {
+static inline int {{ network.name }}_message_name_from_id(canlib_message_id id, char *buffer) {
     switch (id) {
 {%- for message in network.messages.values() %}
 {%- for message_sub_name in message["id"].keys() %}
-        case {{ network.name }}_id_{{ message_sub_name }}:
-            strcpy(buffer, "{{ message_sub_name }}");
-            return {{ message_sub_name | length }};
+        case {{ network.name }}_ID_{{ message_sub_name }}:
+            return sprintf(buffer, "%s", "{{ message_sub_name }}");;
 {%- endfor %}
 {%- endfor %}
         default:
-            strcpy(buffer, ""); // Unknown message
+            return 0; // Unknown message
     }
-    return 0;
 }
 
-bool {{ network.name }}_is_message_id(canlib_message_id message_id) {
+static inline bool {{ network.name }}_is_message_id(canlib_message_id message_id) {
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
@@ -65,6 +59,7 @@ bool {{ network.name }}_is_message_id(canlib_message_id message_id) {
     return false;
 }
 
+#ifdef {{ network.name }}_IDS_IMPLEMENTATION
 #endif // {{ network.name }}_IDS_IMPLEMENTATION
 
 #ifdef __cplusplus

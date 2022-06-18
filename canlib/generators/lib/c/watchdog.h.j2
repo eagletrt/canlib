@@ -44,16 +44,20 @@ typedef void (*canlib_watchdog_callback)(int);
 
 #endif // CANLIB_BITMASK_UTILS
 
+#ifndef CANLIB_UNUSED
+#define CANLIB_UNUSED(expr) do { (void)(expr); } while (0)
+#endif // CANLIB_UNUSED
+
 {% set count = namespace(value=0) -%}
 {%- for message in schema.messages %}
 {%- for message_sub_name, message_id in message.id.items() %}
-#define {{ network.name }}_watchdog_index_{{ message_sub_name }} {{ count.value }}
+#define {{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }} {{ count.value }}
 {%- set count.value = count.value + 1 -%}
 {%- endfor %}
 {%- endfor %}
 
 {% for message in schema.messages %}
-#define {{ network.name }}_{{ message.name }}_INTERVAL {{ message.interval }}
+#define {{ network.name }}_INTERVAL_{{ message.name }} {{ message.interval }}
 {%- endfor %}
 
 // Messages with this interval will be ignored by the watchdog as they are not
@@ -66,38 +70,35 @@ typedef struct {
     canlib_watchdog_timestamp last_reset[{{ network.get_message_count() }}];
 } {{ network.name }}_watchdog;
 
-int {{ network.name }}_watchdog_index_from_id(canlib_message_id id);
-int {{ network.name }}_watchdog_interval_from_id(uint16_t message_id);
-
-{{ network.name }}_watchdog* {{ network.name }}_watchdog_new();
-void {{ network.name }}_watchdog_reset({{ network.name }}_watchdog *watchdog, canlib_message_id id, canlib_watchdog_timestamp timestamp);
-void {{ network.name }}_watchdog_reset_all({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp);
-void {{ network.name }}_watchdog_timeout({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp);
-
-#ifdef {{ network.name }}_WATCHDOG_IMPLEMENTATION
-
-int {{ network.name }}_watchdog_interval_from_id(uint16_t message_id) {
+static inline int {{ network.name }}_watchdog_interval_from_id(uint16_t message_id) {
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
-    case {{ message_id }}:
-        return {{ network.name }}_{{ message_name }}_INTERVAL;
+        case {{ message_id }}: return {{ network.name }}_INTERVAL_{{ message_name }};
 {%- endfor %}
 {%- endfor %}
     }
     return -1;
 }
 
-int {{ network.name }}_watchdog_index_from_id(canlib_message_id id) {
+static inline int {{ network.name }}_watchdog_index_from_id(canlib_message_id id) {
     switch (id) {
 {%- for message in schema.messages %}
 {%- for message_sub_name, message_id in message.id.items() %}
-        case {{ message_id }}: return {{ network.name }}_watchdog_index_{{ message_sub_name }};
+        case {{ message_id }}: return {{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }};
 {%- endfor %}
 {%- endfor %}
     }
     return {{ network.get_message_count() }}; // invalid
 }
+
+{{ network.name }}_watchdog* {{ network.name }}_watchdog_new();
+void {{ network.name }}_watchdog_free({{ network.name }}_watchdog *watchdog);
+void {{ network.name }}_watchdog_reset({{ network.name }}_watchdog *watchdog, canlib_message_id id, canlib_watchdog_timestamp timestamp);
+void {{ network.name }}_watchdog_reset_all({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp);
+void {{ network.name }}_watchdog_timeout({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp);
+
+#ifdef {{ network.name }}_WATCHDOG_IMPLEMENTATION
 
 {{ network.name }}_watchdog* {{ network.name }}_watchdog_new() {
     {{ network.name }}_watchdog *watchdog = ({{ network.name }}_watchdog*)malloc(sizeof({{ network.name }}_watchdog));
@@ -108,6 +109,11 @@ int {{ network.name }}_watchdog_index_from_id(canlib_message_id id) {
     memset(watchdog->timeout, 0, sizeof(watchdog->timeout));
     memset(watchdog->last_reset, 0, sizeof(watchdog->last_reset));
     return watchdog;
+}
+
+
+void {{ network.name }}_watchdog_free({{ network.name }}_watchdog *watchdog) {
+    free(watchdog);
 }
 
 void {{ network.name }}_watchdog_reset({{ network.name }}_watchdog *watchdog, canlib_message_id id, canlib_watchdog_timestamp timestamp) {
@@ -124,20 +130,45 @@ void {{ network.name }}_watchdog_reset_all({{ network.name }}_watchdog *watchdog
 }
 
 void {{ network.name }}_watchdog_timeout({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp) {
-    memset(watchdog->timeout, 0, sizeof(watchdog->timeout));
 {%- for message in schema.messages %}
 {%- for message_sub_name, message_id in message.id.items() %}
 {%- if message.interval != -1 %}
     if (
-        CANLIB_BITTEST_ARRAY(watchdog->activated, {{ network.name }}_watchdog_index_{{ message_sub_name }})
-        && timestamp - watchdog->last_reset[{{ network.name }}_watchdog_index_{{ message_sub_name }}] > {{ network.name }}_{{ message.name }}_INTERVAL
+        CANLIB_BITTEST_ARRAY(watchdog->activated, {{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }})
+        && timestamp - watchdog->last_reset[{{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }}] > {{ network.name }}_INTERVAL_{{ message.name }}
     ) {
-        CANLIB_BITSET_ARRAY(watchdog->timeout, {{ network.name }}_watchdog_index_{{ message_sub_name }});
+        CANLIB_BITSET_ARRAY(watchdog->timeout, {{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }});
     }
 {%- endif %}
 {%- endfor %}
 {%- endfor %}
 }
+
+{%- for interval in network.get_intervals() %}
+{%- if interval != -1 %}
+void {{ network.name }}_watchdog_timeout_{{ interval }}({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp) {
+{%- set messages_by_interval = network.get_messages_by_interval(interval) -%}
+{%- if messages_by_interval | length > 0 %}
+{%- for message_name, message in messages_by_interval.items() %}
+{%- for message_sub_name, message_id in message["id"].items() %}
+{%- if message.interval != -1 %}
+    if (
+        CANLIB_BITTEST_ARRAY(watchdog->activated, {{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }})
+        && timestamp - watchdog->last_reset[{{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }}] > {{ network.name }}_INTERVAL_{{ message_name }}
+    ) {
+        CANLIB_BITSET_ARRAY(watchdog->timeout, {{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }});
+    }
+{%- endif %}
+{%- endfor %}
+{%- endfor %}
+{%- else %}
+    // no messages in this interval
+    CANLIB_UNUSED(watchdog);
+    CANLIB_UNUSED(timestamp);
+{%- endif %}
+}
+{%- endif %}
+{% endfor %}
 
 #endif // {{ network.name }}_WATCHDOG_IMPLEMENTATION
 

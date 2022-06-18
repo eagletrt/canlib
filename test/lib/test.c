@@ -2,7 +2,7 @@
 
 #define CANLIB_TIMESTAMP
 
-#define test_IMPLEMENTATION
+#define test_NETWORK_IMPLEMENTATION
 #include "lib/test/c/network.h"
 
 #define test_IDS_IMPLEMENTATION

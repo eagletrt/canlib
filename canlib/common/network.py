@@ -1,6 +1,6 @@
 from pathlib import Path
-from canlib.common.limits import RESERVED_KEYWORKDS
 
+from canlib.common.limits import ALLOWED_INTERVALS, RESERVED_KEYWORKDS
 from canlib.config import CAN_CONFIG_VALIDATION_SCHEMA, NETWORK_VALIDATION_SCHEMA
 
 from . import utils
@@ -69,6 +69,16 @@ class Network:
             name: contents
             for name, contents in self.messages.items()
             if contents["topic"] == topic
+        }
+
+    def get_intervals(self) -> set:
+        return set(ALLOWED_INTERVALS)
+
+    def get_messages_by_interval(self, interval) -> dict:
+        return {
+            name: contents
+            for name, contents in self.messages.items()
+            if "interval" in contents and contents["interval"] == interval
         }
 
     def get_messages_with_fixed_id(self) -> dict:

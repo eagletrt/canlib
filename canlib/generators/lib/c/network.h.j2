@@ -71,8 +71,6 @@ static_assert(sizeof(double) == 8, "canlib: sizeof(double) != 8 BYTES");
 #define CANLIB_PARKING __attribute__((__packed__)) // , __aligned__(1)))
 #endif
 
-#define CANLIB_UNUSED(expr) do { (void)(expr); } while (0)
-
 #define PRIf32 "f"
 #define PRIf64 "f"
 
@@ -98,6 +96,10 @@ static_assert(sizeof(double) == 8, "canlib: sizeof(double) != 8 BYTES");
 
 #endif // CANLIB_BITMASK_UTILS
 
+#ifndef CANLIB_UNUSED
+#define CANLIB_UNUSED(expr) do { (void)(expr); } while (0)
+#endif // CANLIB_UNUSED
+
 #ifndef CANLIB_SEPARATOR
 #define CANLIB_SEPARATOR ","
 #endif // CANLIB_SEPARATOR
@@ -109,7 +111,7 @@ typedef uint16_t canlib_message_id;
 
 // Info
 
-#define {{ network.name }}_NUMBER_OF_MESSAGES {{ network.get_message_count() }}
+#define {{ network.name }}_MESSAGE_COUNT {{ network.get_message_count() }}
 
 // Custom types
 
@@ -146,17 +148,27 @@ typedef union {
 
 typedef struct {
     uint16_t id;
-    void* raw_message;
-    void* conversion_message;
-} {{ network.name }}_devices[{{ network.name }}_NUMBER_OF_MESSAGES];
+    void* message_raw;
+    void* message_conversion;
+} {{ network.name }}_devices[{{ network.name }}_MESSAGE_COUNT];
+
+// ============== INDEXES ============ //
+
+{% set count = namespace(value=0) -%}
+{%- for message in schema.messages %}
+{%- for message_sub_name, message_id in message.id.items() %}
+#define {{ network.name }}_INDEX_{{ message_sub_name }} {{ count.value }}
+{%- set count.value = count.value + 1 -%}
+{%- endfor %}
+{%- endfor %}
 
 // ============== SIZES ============== //
 
 {% for message in schema.messages %}
-#define {{ network.name }}_{{ message.name }}_SIZE {{ message.byte_size }}
+#define {{ network.name }}_SIZE_{{ message.name }} {{ message.byte_size }}
 {%- endfor %}
 
-// ============== BIT SETS ============== //
+// ============== BIT SETS =========== //
 
 {% for bit_set in schema.bit_sets %}
 typedef {{ network.name }}_{{ bit_set.base_type.name }} {{ network.name }}_{{ bit_set.name }};
@@ -193,6 +205,7 @@ typedef struct CANLIB_PARKING {
 } {{ network.name }}_message_{{ message.name }};
 
 {%- if message.has_conversions %}
+
 typedef struct CANLIB_PARKING {
 {%- if message.fields %}
 {%- for field in message.fields %}
@@ -211,6 +224,29 @@ typedef struct CANLIB_PARKING {
 } {{ network.name }}_message_{{ message.name }}_conversion;
 {%- endif %}
 {% endfor %}
+
+typedef union CANLIB_PARKING {
+{%- for message in schema.messages %}
+    {{ network.name }}_message_{{ message.name }} _{{ message.name }};
+{%- endfor %}
+} _{{ network.name }}_all_structs_raw;
+
+typedef union CANLIB_PARKING {
+{%- for message in schema.messages %}
+{%- if message.has_conversions %}
+    {{ network.name }}_message_{{ message.name }}_conversion _{{ message.name }};
+{%- endif %}
+{%- endfor %}
+} _{{ network.name }}_all_structs_conversion;
+
+typedef union CANLIB_PARKING {
+    _{{ network.name }}_all_structs_raw raw;
+    _{{ network.name }}_all_structs_conversion conversion;
+} _{{ network.name }}_all_structs;
+
+#define {{ network.name }}_MAX_STRUCT_SIZE_RAW sizeof(_{{ network.name }}_all_structs_raw)
+#define {{ network.name }}_MAX_STRUCT_SIZE_CONVERSION sizeof(_{{ network.name }}_all_structs_conversion)
+#define {{ network.name }}_MAX_STRUCT_SIZE sizeof(_{{ network.name }}_all_structs)
 
 {% for message in schema.messages %}
 // ============== {{message.name}} ============== //
@@ -285,22 +321,43 @@ int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer);
 
 // ============== UTILS ============== //
 
-void {{ network.name }}_devices_new({{ network.name }}_devices* map);
-int {{ network.name }}_devices_index_from_id(canlib_message_id message_id, {{ network.name }}_devices* map);
+
+static inline int {{ network.name }}_index_from_id(canlib_message_id id) {
+    switch (id) {
+{%- for message in schema.messages %}
+{%- for message_sub_name, message_id in message.id.items() %}
+        case {{ message_id }}: return {{ network.name }}_INDEX_{{ message_sub_name }};
+{%- endfor %}
+{%- endfor %}
+    }
+    return {{ network.get_message_count() }}; // invalid
+}
+
 int {{ network.name }}_fields_from_id(canlib_message_id message_id, char *buffer);
 int {{ network.name }}_to_string_from_id(canlib_message_id message_id, void* message, char *buffer);
 int {{ network.name }}_fields_file_from_id(canlib_message_id message_id, FILE *buffer);
 int {{ network.name }}_to_string_file_from_id(canlib_message_id message_id, void* message, FILE *buffer);
-int {{ network.name }}_deserialize_from_id(
+void* {{ network.name }}_deserialize_from_id(
     canlib_message_id message_id,
     uint8_t* data,
-    void** message
+    void* message_raw,
+    void* message_conversion
+#ifdef CANLIB_TIMESTAMP
+    , {{ network.name }}_uint64 timestamp
+#endif // CANLIB_TIMESTAMP
+);
+{{ network.name }}_devices* {{ network.name }}_devices_new();
+void {{ network.name }}_devices_free({{ network.name }}_devices* devices);
+void {{ network.name }}_devices_deserialize_from_id(
+    {{ network.name }}_devices* devices,
+    canlib_message_id message_id,
+    uint8_t* data
 #ifdef CANLIB_TIMESTAMP
     , {{ network.name }}_uint64 timestamp
 #endif // CANLIB_TIMESTAMP
 );
 
-#ifdef {{ network.name }}_IMPLEMENTATION
+#ifdef {{ network.name }}_NETWORK_IMPLEMENTATION
 
 {%- for message in schema.messages %}
 // ============== SERIALIZE ============== //
@@ -348,6 +405,7 @@ void {{ network.name }}_deserialize_{{ message.name }}(
 #endif // CANLIB_TIMESTAMP
 ) {
 {%- if not message.fields %}
+    CANLIB_UNUSED(message);
     CANLIB_UNUSED(data);
 #ifdef CANLIB_TIMESTAMP
     CANLIB_UNUSED(_timestamp);
@@ -463,7 +521,7 @@ void {{ network.name }}_conversion_to_raw_struct_{{ message.name }}(
 
 // ============== STRING ============== //
 
-{% if message.has_conversions -%}
+{%- if message.has_conversions %}
 int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, char* buffer) {
 {%- if message.fields  %}
     return sprintf(
@@ -489,9 +547,10 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
     CANLIB_UNUSED(message);
     CANLIB_UNUSED(buffer);
     return 0;
-{% endif %}
+{%- endif %}
 }
-{% else -%}
+{%- else %}
+
 int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, char* buffer) {
 {%- if message.fields  %}
     return sprintf(
@@ -513,9 +572,10 @@ int {{ network.name }}_to_string_{{ message.name }}({{ network.name }}_message_{
     CANLIB_UNUSED(message);
     CANLIB_UNUSED(buffer);
     return 0;
-{% endif %}
+{%- endif %}
 }
-{% endif -%}
+{%- endif %}
+
 int {{ network.name }}_fields_{{ message.name }}(char* buffer) {
 {%- if message.fields  %}
     return sprintf(
@@ -530,9 +590,10 @@ int {{ network.name }}_fields_{{ message.name }}(char* buffer) {
 {%- else %}
     CANLIB_UNUSED(buffer);
     return 0;
-{% endif %}
+{%- endif %}
 }
-{% if message.has_conversions -%}
+{%- if message.has_conversions %}
+
 int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}_conversion* message, FILE* buffer) {
 {%- if message.fields  %}
     return fprintf(
@@ -558,9 +619,10 @@ int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mess
     CANLIB_UNUSED(message);
     CANLIB_UNUSED(buffer);
     return 0;
-{% endif %}
+{%- endif %}
 }
-{% else -%}
+{%- else %}
+
 int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_message_{{ message.name }}* message, FILE* buffer) {
 {%- if message.fields  %}
     return fprintf(
@@ -582,9 +644,9 @@ int {{ network.name }}_to_string_file_{{ message.name }}({{ network.name }}_mess
     CANLIB_UNUSED(message);
     CANLIB_UNUSED(buffer);
     return 0;
-{% endif %}
+{%- endif %}
 }
-{% endif -%}
+{%- endif %}
 
 int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer) {
 {%- if message.fields  %}
@@ -600,7 +662,7 @@ int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer) {
 {%- else %}
     CANLIB_UNUSED(buffer);
     return 0;
-{% endif %}
+{%- endif %}
 }
 {% endfor %}
 
@@ -610,8 +672,8 @@ int {{ network.name }}_fields_from_id(canlib_message_id message_id, char* buffer
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
-    case {{ message_id }}:
-        return {{ network.name }}_fields_{{ message_name }}(buffer);
+        case {{ message_id }}:
+            return {{ network.name }}_fields_{{ message_name }}(buffer);
 {%- endfor %}
 {%- endfor %}
     }
@@ -642,8 +704,8 @@ int {{ network.name }}_fields_file_from_id(canlib_message_id message_id, FILE *b
     switch (message_id) {
 {%- for message_name, message_contents in network.messages.items() %}
 {%- for message_id in message_contents["id"].values() %}
-    case {{ message_id }}:
-        return {{ network.name }}_fields_file_{{ message_name }}(buffer);
+        case {{ message_id }}:
+            return {{ network.name }}_fields_file_{{ message_name }}(buffer);
 {%- endfor %}
 {%- endfor %}
     }
@@ -670,86 +732,108 @@ int {{ network.name }}_to_string_file_from_id(canlib_message_id message_id, void
     return 0;
 }
 
-int {{ network.name }}_deserialize_from_id(
+
+void* {{ network.name }}_deserialize_from_id(
     canlib_message_id message_id,
     uint8_t* data,
-    void** message
+    void* message_raw,
+    void* message_conversion
 #ifdef CANLIB_TIMESTAMP
     , {{ network.name }}_uint64 timestamp
 #endif // CANLIB_TIMESTAMP
 ) {
     switch (message_id) {
-{%- for message_name, message_contents in network.messages.items() %}
-{%- for message_id in message_contents["id"].values() %}
+{%- for message in schema.messages %}
+{%- for message_id in message.id.values() %}
         case {{ message_id }}: {
-{%- for schema_msg in schema.messages -%}
-{%- if schema_msg.name == message_name %}
-{%- if schema_msg.has_conversions %}
-            {{ network.name }}_message_{{ message_name }}* raw_message = ({{ network.name }}_message_{{ message_name }}*) malloc(sizeof({{ network.name }}_message_{{message_name}}));
-            *message = malloc(sizeof({{ network.name }}_message_{{message_name}}_conversion));
-            {{ network.name }}_deserialize_{{ message_name }}(
-                raw_message,
+            {{ network.name }}_deserialize_{{ message.name }}(
+                ({{ network.name }}_message_{{ message.name }}*) message_raw,
                 data
                 #ifdef CANLIB_TIMESTAMP
                 , timestamp
                 #endif
             );
-            {{ network.name }}_raw_to_conversion_struct_{{ message_name }}(
-                ({{ network.name }}_message_{{message_name}}_conversion*) *message,
-                ({{ network.name }}_message_{{message_name}}*) raw_message
+{%- if message.has_conversions %}
+            {{ network.name }}_raw_to_conversion_struct_{{ message.name }}(
+                ({{ network.name }}_message_{{message.name}}_conversion*) message_conversion,
+                ({{ network.name }}_message_{{message.name}}*) message_raw
             );
-            free(raw_message);
-            return sizeof({{ network.name }}_message_{{message_name}}_conversion);
+            return message_conversion;
 {%- else %}
-            *message = malloc(sizeof({{ network.name }}_message_{{message_name}}));
-            {{ network.name }}_deserialize_{{ message_name }}(
-                ({{ network.name }}_message_{{ message_name }}*) *message,
-                data
-                #ifdef CANLIB_TIMESTAMP
-                , timestamp
-                #endif
-            );
-            return sizeof({{ network.name }}_message_{{message_name}});
+            return message_raw;
 {%- endif %}
         }
-{%- endif -%}
-{%- endfor %}
 {%- endfor %}
 {%- endfor %}
     }
-    return 0;
+    return NULL;
 }
 
-void {{ network.name }}_devices_new({{ network.name }}_devices* map) {
-{%- set ns = namespace(inner_loop=0) -%}
-{%- for message_name, message_contents in network.messages.items() -%}
-{%- set outer_loop = loop -%}
-{%- for message_id in message_contents["id"].values() -%}
-{%- set ns.inner_loop = [ns.inner_loop, loop.index0]|max %}
-    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].id = {{ message_id }};
-    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].raw_message = (void*) malloc(sizeof({{ network.name }}_message_{{ message_name }}));
-{%- for schema_msg in schema.messages -%}
-{%- if schema_msg.name == message_name %}
-{%- if schema_msg.has_conversions %}
-    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].conversion_message = (void*) malloc(sizeof({{ network.name }}_message_{{ message_name }}_conversion));
-{% else %}
-    (*map)[{{ outer_loop.index0 + ns.inner_loop }}].conversion_message = NULL;
-{% endif -%}
-{% endif -%}
-{% endfor -%}
-{% endfor %}
+{{ network.name }}_devices* {{ network.name }}_devices_new() {
+    {{ network.name }}_devices* devices = ({{ network.name }}_devices*) malloc(sizeof({{ network.name }}_devices));
+{%- for message in schema.messages -%}
+{%- for message_id in message.id.values() %}
+{%- for message_sub_name, message_id in message.id.items() %}
+    (*devices)[{{ network.name }}_INDEX_{{ message_sub_name }}].id = {{ message_id }};
+    (*devices)[{{ network.name }}_INDEX_{{ message_sub_name }}].message_raw = (void*) malloc(sizeof({{ network.name }}_message_{{ message.name }}));
+{%- if message.has_conversions %}
+    (*devices)[{{ network.name }}_INDEX_{{ message_sub_name }}].message_conversion = (void*) malloc(sizeof({{ network.name }}_message_{{ message.name }}_conversion));
+{%- else %}
+    (*devices)[{{ network.name }}_INDEX_{{ message_sub_name }}].message_conversion = NULL;
+{%- endif %}
 {%- endfor %}
+{%- endfor %}
+{%- endfor %}
+    return devices;
 }
 
-int {{ network.name }}_devices_index_from_id(canlib_message_id message_id, {{ network.name }}_devices* map) {
-    for (int index = 0; index < {{ network.name }}_NUMBER_OF_MESSAGES; index++) {
-        if ((*map)[index].id == message_id)
-            return index;
+void {{ network.name }}_devices_free({{ network.name }}_devices* devices) {
+{%- for message in schema.messages -%}
+{%- for message_id in message.id.values() %}
+{%- for message_sub_name, message_id in message.id.items() %}
+    free((*devices)[{{ network.name }}_INDEX_{{ message_sub_name }}].message_raw);
+{%- if message.has_conversions %}
+    free((*devices)[{{ network.name }}_INDEX_{{ message_sub_name }}].message_conversion);
+{%- endif %}
+{%- endfor %}
+{%- endfor %}
+{%- endfor %}
+    free(devices);
+}
+
+void {{ network.name }}_devices_deserialize_from_id(
+    {{ network.name }}_devices* devices,
+    canlib_message_id message_id,
+    uint8_t* data
+#ifdef CANLIB_TIMESTAMP
+    , {{ network.name }}_uint64 timestamp
+#endif // CANLIB_TIMESTAMP
+) {
+    switch (message_id) {
+{%- for message in schema.messages %}
+{%- for message_sub_name, message_id in message.id.items() %}
+        case {{ message_id }}: {
+            {{ network.name }}_deserialize_{{ message.name }}(
+                ({{ network.name }}_message_{{ message.name }}*) &(*devices)[{{ network.name }}_INDEX_{{ message_sub_name }}].message_raw,
+                data
+                #ifdef CANLIB_TIMESTAMP
+                , timestamp
+                #endif
+            );
+{%- if message.has_conversions %}
+            {{ network.name }}_raw_to_conversion_struct_{{ message.name }}(
+                ({{ network.name }}_message_{{ message.name }}_conversion*) &(*devices)[{{ network.name }}_INDEX_{{ message_sub_name }}].message_conversion,
+                ({{ network.name }}_message_{{ message.name }}*) &(*devices)[{{ network.name }}_INDEX_{{ message_sub_name }}].message_raw
+            );
+{%- endif %}
+            return;
+        }
+{%- endfor %}
+{%- endfor %}
     }
-    return -1;
 }
 
-#endif
+#endif // {{ network.name }}_NETWORK_IMPLEMENTATION
 
 #ifdef __cplusplus
 }
