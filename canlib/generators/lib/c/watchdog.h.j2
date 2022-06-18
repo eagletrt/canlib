@@ -56,13 +56,17 @@ typedef void (*canlib_watchdog_callback)(int);
 {%- endfor %}
 {%- endfor %}
 
-{% for message in schema.messages %}
+{% for message in schema.messages -%}
 #define {{ network.name }}_INTERVAL_{{ message.name }} {{ message.interval }}
-{%- endfor %}
+{% endfor %}
 
 // Messages with this interval will be ignored by the watchdog as they are not
 // expected to be sent regularly.
 #define {{ network.name }}_INTERVAL_ONCE -1
+
+{% for message in schema.messages -%}
+#define {{ network.name }}_INTERVAL_WITH_THRESHOLD_{{ message.name }} {{ (message.interval * 1.1) | int }}
+{% endfor %}
 
 typedef struct {
     uint8_t activated[{{ (network.get_message_count() / 8) | round(method='ceil') | int }}];
@@ -97,6 +101,11 @@ void {{ network.name }}_watchdog_free({{ network.name }}_watchdog *watchdog);
 void {{ network.name }}_watchdog_reset({{ network.name }}_watchdog *watchdog, canlib_message_id id, canlib_watchdog_timestamp timestamp);
 void {{ network.name }}_watchdog_reset_all({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp);
 void {{ network.name }}_watchdog_timeout({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp);
+{%- for interval in network.get_intervals() %}
+{%- if interval != -1 %}
+void {{ network.name }}_watchdog_timeout_{{ interval }}({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp);
+{%- endif %}
+{%- endfor %}
 
 #ifdef {{ network.name }}_WATCHDOG_IMPLEMENTATION
 
@@ -135,7 +144,7 @@ void {{ network.name }}_watchdog_timeout({{ network.name }}_watchdog *watchdog, 
 {%- if message.interval != -1 %}
     if (
         CANLIB_BITTEST_ARRAY(watchdog->activated, {{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }})
-        && timestamp - watchdog->last_reset[{{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }}] > {{ network.name }}_INTERVAL_{{ message.name }}
+        && timestamp - watchdog->last_reset[{{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }}] > {{ network.name }}_INTERVAL_WITH_THRESHOLD_{{ message.name }}
     ) {
         CANLIB_BITSET_ARRAY(watchdog->timeout, {{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }});
     }
@@ -143,8 +152,7 @@ void {{ network.name }}_watchdog_timeout({{ network.name }}_watchdog *watchdog, 
 {%- endfor %}
 {%- endfor %}
 }
-
-{%- for interval in network.get_intervals() %}
+{% for interval in network.get_intervals() %}
 {%- if interval != -1 %}
 void {{ network.name }}_watchdog_timeout_{{ interval }}({{ network.name }}_watchdog *watchdog, canlib_watchdog_timestamp timestamp) {
 {%- set messages_by_interval = network.get_messages_by_interval(interval) -%}
@@ -154,7 +162,7 @@ void {{ network.name }}_watchdog_timeout_{{ interval }}({{ network.name }}_watch
 {%- if message.interval != -1 %}
     if (
         CANLIB_BITTEST_ARRAY(watchdog->activated, {{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }})
-        && timestamp - watchdog->last_reset[{{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }}] > {{ network.name }}_INTERVAL_{{ message_name }}
+        && timestamp - watchdog->last_reset[{{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }}] > {{ network.name }}_INTERVAL_WITH_THRESHOLD_{{ message_name }}
     ) {
         CANLIB_BITSET_ARRAY(watchdog->timeout, {{ network.name }}_WATCHDOG_INDEX_{{ message_sub_name }});
     }
