@@ -23,13 +23,182 @@
 typedef uint16_t canlib_message_id;
 #endif // CANLIB_MESSAGE_ID_TYPE
 
+#ifndef CANLIB_CIRCULAR_BUFFER
+#define CANLIB_CIRCULAR_BUFFER
+namespace Helper {
+template <bool FITS8, bool FITS16>
+struct Index {
+  using Type = uint32_t;
+};
+
+template <>
+struct Index<false, true> {
+  using Type = uint16_t;
+};
+
+template <>
+struct Index<true, true> {
+  using Type = uint8_t;
+};
+}  // namespace Helper
+
+template <typename T, size_t S,
+          typename IT =
+              typename Helper::Index<(S <= UINT8_MAX), (S <= UINT16_MAX)>::Type>
+class canlib_circular_buffer {
+ public:
+  static constexpr IT capacity = static_cast<IT>(S);
+
+  using index_t = IT;
+
+  constexpr canlib_circular_buffer();
+  canlib_circular_buffer(const canlib_circular_buffer &) = delete;
+  canlib_circular_buffer(canlib_circular_buffer &&) = delete;
+  canlib_circular_buffer &operator=(const canlib_circular_buffer &) = delete;
+  canlib_circular_buffer &operator=(canlib_circular_buffer &&) = delete;
+
+  bool unshift(T value);
+  bool push(T value);
+  T shift();
+  T pop();
+  T inline first() const;
+  T inline last() const;
+  T operator[](IT index) const;
+  IT inline size() const;
+  IT inline available() const;
+  bool inline empty() const;
+  bool inline full() const;
+  void inline clear();
+
+ private:
+  T buffer[S];
+  T *head;
+  T *tail;
+#ifndef CIRCULAR_BUFFER_INT_SAFE
+  IT count;
+#else
+  volatile IT count;
+#endif
+};
+
+template <typename T, size_t S, typename IT>
+constexpr canlib_circular_buffer<T, S, IT>::canlib_circular_buffer()
+    : head(buffer), tail(buffer), count(0) {}
+
+template <typename T, size_t S, typename IT>
+bool canlib_circular_buffer<T, S, IT>::unshift(T value) {
+  if (head == buffer) {
+    head = buffer + capacity;
+  }
+  *--head = value;
+  if (count == capacity) {
+    if (tail-- == buffer) {
+      tail = buffer + capacity - 1;
+    }
+    return false;
+  } else {
+    if (count++ == 0) {
+      tail = head;
+    }
+    return true;
+  }
+}
+
+template <typename T, size_t S, typename IT>
+bool canlib_circular_buffer<T, S, IT>::push(T value) {
+  if (++tail == buffer + capacity) {
+    tail = buffer;
+  }
+  *tail = value;
+  if (count == capacity) {
+    if (++head == buffer + capacity) {
+      head = buffer;
+    }
+    return false;
+  } else {
+    if (count++ == 0) {
+      head = tail;
+    }
+    return true;
+  }
+}
+
+template <typename T, size_t S, typename IT>
+T canlib_circular_buffer<T, S, IT>::shift() {
+  if (count == 0) return *head;
+  T result = *head++;
+  if (head >= buffer + capacity) {
+    head = buffer;
+  }
+  count--;
+  return result;
+}
+
+template <typename T, size_t S, typename IT>
+T canlib_circular_buffer<T, S, IT>::pop() {
+  if (count == 0) return *tail;
+  T result = *tail--;
+  if (tail < buffer) {
+    tail = buffer + capacity - 1;
+  }
+  count--;
+  return result;
+}
+
+template <typename T, size_t S, typename IT>
+T inline canlib_circular_buffer<T, S, IT>::first() const {
+  return *head;
+}
+
+template <typename T, size_t S, typename IT>
+T inline canlib_circular_buffer<T, S, IT>::last() const {
+  return *tail;
+}
+
+template <typename T, size_t S, typename IT>
+T canlib_circular_buffer<T, S, IT>::operator[](IT index) const {
+  if (index >= count) return *tail;
+  return *(buffer + ((head - buffer + index) % capacity));
+}
+
+template <typename T, size_t S, typename IT>
+IT inline canlib_circular_buffer<T, S, IT>::size() const {
+  return count;
+}
+
+template <typename T, size_t S, typename IT>
+IT inline canlib_circular_buffer<T, S, IT>::available() const {
+  return capacity - count;
+}
+
+template <typename T, size_t S, typename IT>
+bool inline canlib_circular_buffer<T, S, IT>::empty() const {
+  return count == 0;
+}
+
+template <typename T, size_t S, typename IT>
+bool inline canlib_circular_buffer<T, S, IT>::full() const {
+  return count == capacity;
+}
+
+template <typename T, size_t S, typename IT>
+void inline canlib_circular_buffer<T, S, IT>::clear() {
+  head = tail = buffer;
+  count = 0;
+}
+#endif // CANLIB_CIRCULAR_BUFFER
+
+#ifndef CANLIB_CIRCULAR_BUFFER_SIZE
+#define CANLIB_CIRCULAR_BUFFER_SIZE 500
+#endif // CANLIB_CIRCULAR_BUFFER_SIZE
+
 typedef struct {
 {%- for message in schema.messages %}
 {%- for name, id in message.id.items() %}
 {%- if message.has_conversions %}
-    std::vector<{{ network.name }}_message_{{ message.name }}_conversion> {{ name }};
+    canlib_circular_buffer<{{ network.name }}_message_{{ message.name }}_conversion, CANLIB_CIRCULAR_BUFFER_SIZE> {{ name }};
 {%- else %}
-    std::vector<{{ network.name }}_message_{{ message.name }}> {{ name }};
+    canlib_circular_buffer<{{ network.name }}_message_{{ message.name }}, CANLIB_CIRCULAR_BUFFER_SIZE> {{ name }};
 {%- endif %}
 {%- endfor %}
 {%- endfor %}
@@ -73,18 +242,23 @@ void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network
 void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map) {
 {%- for message in schema.messages %}
 {%- for name, id in message.id.items() %}
-    map->{{ name }}.resize(pack->{{ name | lower }}_size());
     for(int i = 0; i < pack->{{ name | lower }}_size(); i++){
+{%- if message.has_conversions %}
+        static {{ network.name }}_message_{{ message.name }}_conversion instance;
+{%- else %}
+        static {{ network.name }}_message_{{ message.name }} instance;
+{%- endif %}
 {%- for field in message.fields %}
-        map->{{ name }}[i].{{ field.name }} =
+        instance.{{ field.name }} =
 {%- if field.type.__class__.__name__ == "Enum" -%}
          ({{ network.name }}_{{ field.type.name }})
 {%- endif -%}
         pack->{{ name | lower }}(i).{{ field.name }}();
 {%- endfor %}
 #ifdef CANLIB_TIMESTAMP
-        map->{{ name }}[i]._timestamp = pack->{{ name | lower }}(i)._inner_timestamp();
+        instance._timestamp = pack->{{ name | lower }}(i)._inner_timestamp();
 #endif // CANLIB_TIMESTAMP
+        map->{{ name }}.push(instance);
     }
 {%- endfor %}
 {%- endfor %}
