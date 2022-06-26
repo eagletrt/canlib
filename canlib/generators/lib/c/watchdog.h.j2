@@ -56,17 +56,18 @@ typedef void (*canlib_watchdog_callback)(int);
 {%- endfor %}
 {%- endfor %}
 
+#ifndef CANLIB_INTERVAL_THRESHOLD
+#define CANLIB_INTERVAL_THRESHOLD 500
+#endif // CANLIB_INTERVAL_THRESHOLD
+
 {% for message in schema.messages -%}
 #define {{ network.name }}_INTERVAL_{{ message.name }} {{ message.interval }}
+#define {{ network.name }}_INTERVAL_WITH_THRESHOLD_{{ message.name }} ({{ message.interval }} + CANLIB_INTERVAL_THRESHOLD)
 {% endfor %}
 
 // Messages with this interval will be ignored by the watchdog as they are not
 // expected to be sent regularly.
 #define {{ network.name }}_INTERVAL_ONCE -1
-
-{% for message in schema.messages -%}
-#define {{ network.name }}_INTERVAL_WITH_THRESHOLD_{{ message.name }} {{ (message.interval * 1.1) | int }}
-{% endfor %}
 
 typedef struct {
     uint8_t activated[{{ (network.get_message_count() / 8) | round(method='ceil') | int }}];
