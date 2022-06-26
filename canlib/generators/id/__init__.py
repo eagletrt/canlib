@@ -39,9 +39,6 @@ class IdGenerator:
 
 
 def generate_ids(network: Network, blacklist=set()):
-    if len(network.messages) >= 2**MESSAGE_BITS:
-        raise Exception(f"No messages (>{2**MESSAGE_BITS})")
-
     ids = {}
     topics = generate_topics_id(network)
 
