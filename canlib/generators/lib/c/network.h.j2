@@ -79,6 +79,8 @@ static_assert(sizeof(double) == 8, "canlib: sizeof(double) != 8 BYTES");
 #ifndef CANLIB_BITMASK_UTILS
 #define CANLIB_BITMASK_UTILS
 
+// *** START DANGEROUS THINGS ***
+
 #define CANLIB_BITMASK_TYPE uint8_t
 #define CANLIB_BITMASK_TYPE_BITS 8
 
@@ -88,6 +90,12 @@ static_assert(sizeof(double) == 8, "canlib: sizeof(double) != 8 BYTES");
 #define CANLIB_BITCLEAR_ARRAY(a, b) ((a)[CANLIB_BITSLOT_ARRAY(b)] &= ~CANLIB_BITMASK_ARRAY(b))
 #define CANLIB_BITTEST_ARRAY(a, b) ((a)[CANLIB_BITSLOT_ARRAY(b)] & CANLIB_BITMASK_ARRAY(b))
 #define CANLIB_BITNSLOTS_ARRAY(nb) ((nb + CANLIB_BITMASK_TYPE_BITS - 1) / CANLIB_BITMASK_TYPE_BITS)
+
+// *** END DANGEROUS THINGS ***
+
+#define CANLIB_BITSET_BITMASK(a, b) ((a) |= (b))
+#define CANLIB_BITCLEAR_BITMASK(a, b) ((a) &= ~(b))
+#define CANLIB_BITTEST_BITMASK(a, b) ((a) & (b))
 
 #define CANLIB_BITMASK(b) (1 << (b))
 #define CANLIB_BITSET(a, b) ((a) |= CANLIB_BITMASK(b))
