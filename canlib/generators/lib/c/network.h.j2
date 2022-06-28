@@ -184,6 +184,9 @@ typedef {{ network.name }}_{{ bit_set.base_type.name }} {{ network.name }}_{{ bi
 {%- for name in bit_set.items %}
 #define {{ network.name }}_{{ bit_set.name }}_{{ name }} {{ 2**loop.index0 }}
 {%- endfor %}
+
+#define {{ network.name }}_MAX_STRING_LENGTH_{{ bit_set.name }} {{ bit_set.max_string_length() + 1 }}
+int {{ network.name }}_to_string_{{ bit_set.name }}({{ network.name }}_{{ bit_set.name }} value, char* buffer);
 {% endfor %}
 
 // ============== ENUMS ============== //
@@ -194,6 +197,9 @@ typedef enum CANLIB_PARKING {
     {{ network.name }}_{{ enum.name }}_{{ name }} = {{ loop.index0 }},
     {%- endfor %}
 } {{ network.name }}_{{ enum.name }};
+
+#define {{ network.name }}_MAX_STRING_LENGTH_{{ enum.name }} {{ enum.max_string_length() + 1 }}
+int {{ network.name }}_to_string_{{ enum.name }}({{ network.name }}_{{ enum.name }} value, char* buffer);
 {% endfor %}
 
 // Structs
@@ -326,9 +332,7 @@ int {{ network.name }}_fields_file_{{ message.name }}(FILE* buffer);
 
 {% endfor %}
 
-
 // ============== UTILS ============== //
-
 
 static inline int {{ network.name }}_index_from_id(canlib_message_id id) {
     switch (id) {
@@ -366,6 +370,28 @@ void {{ network.name }}_devices_deserialize_from_id(
 );
 
 #ifdef {{ network.name }}_NETWORK_IMPLEMENTATION
+
+{% for bit_set in schema.bit_sets %}
+int {{ network.name }}_to_string_{{ bit_set.name }}({{ network.name }}_{{ bit_set.name }} value, char* buffer) {
+    int offset = 0;
+    {%- for name in bit_set.items %}
+    if (CANLIB_BITTEST_BITMASK(value, {{ 2**loop.index0 }})) offset += sprintf(buffer + offset, "{{ name }} ");
+    {%- endfor %}
+    buffer[offset] = '\0';
+    return offset;
+}
+{% endfor %}
+
+{% for enum in schema.enums %}
+int {{ network.name }}_to_string_{{ enum.name }}({{ network.name }}_{{ enum.name }} value, char* buffer) {
+    switch (value) {
+    {%- for name in enum.items %}
+        case {{ loop.index0 }}: return sprintf(buffer, "{{ name }}");
+    {%- endfor %}
+    }
+    return 0;
+}
+{% endfor %}
 
 {%- for message in schema.messages %}
 // ============== SERIALIZE ============== //
@@ -739,7 +765,6 @@ int {{ network.name }}_to_string_file_from_id(canlib_message_id message_id, void
     }
     return 0;
 }
-
 
 void* {{ network.name }}_deserialize_from_id(
     canlib_message_id message_id,

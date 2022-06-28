@@ -212,6 +212,9 @@ class Enum:
 
         self.format_string = self.base_type.format_string
 
+    def max_string_length(self):
+        return max(len(item) for item in self.items)
+
     def __len__(self):
         return len(self.items)
 
@@ -226,6 +229,10 @@ class BitSet:
         self.base_type = NUMBER_TYPES_BY_SIZE[self.byte_size]
 
         self.format_string = self.base_type.format_string
+
+    def max_string_length(self):
+        # Formatted as A B C D
+        return sum(len(item) for item in self.items) + len(self.items) - 1
 
     def __len__(self):
         return len(self.items)
