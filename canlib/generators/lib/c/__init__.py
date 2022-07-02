@@ -1,7 +1,9 @@
 from pathlib import Path
+from time import time
 from typing import List
 
 import jinja2 as j2
+from git import Repo
 
 from canlib import config
 from canlib.common.network import Network
@@ -20,6 +22,10 @@ def generate(network: Network, schema: Schema, output_path: Path):
 
     endianess = "LITTLE_ENDIAN" if config.IS_LITTLE_ENDIAN else "BIG_ENDIAN"
 
+    repo = Repo(search_parent_directories=True)
+    short_sha = repo.head.object.hexsha[:8]
+    timestamp = int(time())
+
     network_path = output_path / "network.h"
     network_path.write_text(
         TEMPLATE_NETWORK.render(
@@ -29,6 +35,8 @@ def generate(network: Network, schema: Schema, output_path: Path):
             deserialize=deserialize,
             get_conversion=get_conversion,
             get_deconversion=get_deconversion,
+            timestamp=timestamp,
+            short_sha=short_sha,
             endianess=endianess,
         )
     )

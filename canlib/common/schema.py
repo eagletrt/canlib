@@ -86,24 +86,24 @@ class Message:
         if self.interval not in ALLOWED_INTERVALS:
             raise ValueError(f"Invalid interval {self.interval}, message {name}")
 
-        fields = []
+        self.fields = []
         for item_name, item_type in message["contents"].items():
             if item_name in RESERVED_KEYWORKDS:
                 raise ValueError(f"Field name {item_name} is reserved, message {name}")
             if type(item_type) == dict:
                 conversion = Conversion.from_dict(item_name, item_type)
                 raw_type_name = conversion.raw_type.name
-                fields.append(Field(item_name, raw_type_name, types, conversion))
+                self.fields.append(Field(item_name, raw_type_name, types, conversion))
                 self.has_conversions = True
             else:
-                fields.append(Field(item_name, item_type, types))
-
-        self.fields = sorted(fields, key=lambda field: field.bit_size, reverse=True)
+                self.fields.append(Field(item_name, item_type, types))
 
         index = 0
         start = 8
 
-        for field in self.fields:
+        sorted_fields = sorted(self.fields, key=lambda f: f.bit_size, reverse=True)
+
+        for field in sorted_fields:
             if field.bit_size % 8 == 0:
                 field.shift = 0
             else:

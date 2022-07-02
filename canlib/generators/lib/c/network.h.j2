@@ -14,6 +14,11 @@ extern "C" {
 #include <memory.h>
 #include <stdio.h>
 
+#ifndef CANLIB_BUILD
+#define CANLIB_BUILD_TIME {{ timestamp }}
+#define CANLIB_BUILD_HASH 0x{{ short_sha }}
+#endif // CANLIB_BUILD
+
 #ifndef CANLIB_ASSERTS
 #define CANLIB_ASSERTS
 
