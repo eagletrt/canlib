@@ -87,7 +87,10 @@ class Message:
             raise ValueError(f"Invalid interval {self.interval}, message {name}")
 
         self.fields = []
-        for item_name, item_type in message["contents"].items():
+
+        contents = message.get("contents", {})
+
+        for item_name, item_type in contents.items():
             if item_name in RESERVED_KEYWORKDS:
                 raise ValueError(f"Field name {item_name} is reserved, message {name}")
             if type(item_type) == dict:
