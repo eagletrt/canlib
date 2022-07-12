@@ -153,7 +153,7 @@ class Conversion:
         if "force" in options:
             raw_type = NUMBER_TYPES[options["force"]]
 
-            conv = round((2**raw_type.bit_size) / (r1 - r0), 6)
+            conv = round((2**raw_type.bit_size-1) / (r1 - r0), 6)
         else:
             prec = options["precision"]
             numbers = (r1 - r0) * (1 / prec)
@@ -170,7 +170,7 @@ class Conversion:
                 raise TypeError(f"{name} is too large")
 
             if options.get("optimize", False):
-                conv = round((2**raw_type.bit_size) / (r1 - r0))
+                conv = round((2**raw_type.bit_size-1) / (r1 - r0))
             else:
                 conv = round(1 / prec, 6)
 
