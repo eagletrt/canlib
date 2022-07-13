@@ -15,7 +15,9 @@ message {{ name }} {
 {%- for field in message.fields %}
 {%- if field.type.__class__.__name__ == "Enum" %}
     {{ field.type.name }} {{ field.name }} = {{ loop.index }};
-{%- else %}
+{%- elif not field.conversion == None %}
+    {{ protobuf_type(field.conversion.converted_type) }} {{ field.name }} = {{ loop.index }};
+{%- else  %}
     {{ protobuf_type(field.type) }} {{ field.name }} = {{ loop.index }};
 {%- endif %}
 {%- endfor %}
