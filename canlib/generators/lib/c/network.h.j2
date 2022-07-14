@@ -350,6 +350,17 @@ static inline int {{ network.name }}_index_from_id(canlib_message_id id) {
     return {{ network.get_message_count() }}; // invalid
 }
 
+static inline int {{ network.name }}_id_from_index(int index) {
+    switch (index) {
+{%- for message in schema.messages %}
+{%- for message_sub_name, message_id in message.id.items() %}
+        case {{ network.name }}_INDEX_{{ message_sub_name }}: return {{ message_id }};
+{%- endfor %}
+{%- endfor %}
+    }
+    return {{ network.get_message_count() }}; // invalid
+}
+
 int {{ network.name }}_fields_from_id(canlib_message_id message_id, char *buffer);
 int {{ network.name }}_to_string_from_id(canlib_message_id message_id, void* message, char *buffer);
 int {{ network.name }}_fields_file_from_id(canlib_message_id message_id, FILE *buffer);
