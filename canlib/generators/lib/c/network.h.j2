@@ -347,7 +347,7 @@ static inline int {{ network.name }}_index_from_id(canlib_message_id id) {
 {%- endfor %}
 {%- endfor %}
     }
-    return {{ network.get_message_count() }}; // invalid
+    return -1; // invalid
 }
 
 static inline int {{ network.name }}_id_from_index(int index) {
@@ -358,7 +358,7 @@ static inline int {{ network.name }}_id_from_index(int index) {
 {%- endfor %}
 {%- endfor %}
     }
-    return {{ network.get_message_count() }}; // invalid
+    return -1; // invalid
 }
 
 int {{ network.name }}_fields_from_id(canlib_message_id message_id, char *buffer);
