@@ -61,19 +61,23 @@ class canlib_circular_buffer {
   bool push(T value);
   T shift();
   T pop();
+  const T& start() const;
   T inline first() const;
   T inline last() const;
-  T operator[](IT index) const;
+  const T& operator[](IT index) const;
   IT inline size() const;
   IT inline available() const;
   bool inline empty() const;
   bool inline full() const;
   void inline clear();
+  size_t inline offset() const;
+
 
  private:
   T buffer[S];
   T *head;
   T *tail;
+  size_t _offset;
 #ifndef CIRCULAR_BUFFER_INT_SAFE
   IT count;
 #else
@@ -83,7 +87,7 @@ class canlib_circular_buffer {
 
 template <typename T, size_t S, typename IT>
 constexpr canlib_circular_buffer<T, S, IT>::canlib_circular_buffer()
-    : head(buffer), tail(buffer), count(0) {}
+    : head(buffer), tail(buffer), count(0), _offset(0) {}
 
 template <typename T, size_t S, typename IT>
 bool canlib_circular_buffer<T, S, IT>::unshift(T value) {
@@ -114,6 +118,7 @@ bool canlib_circular_buffer<T, S, IT>::push(T value) {
     if (++head == buffer + capacity) {
       head = buffer;
     }
+    _offset = (_offset + 1) % capacity;
     return false;
   } else {
     if (count++ == 0) {
@@ -156,7 +161,12 @@ T inline canlib_circular_buffer<T, S, IT>::last() const {
 }
 
 template <typename T, size_t S, typename IT>
-T canlib_circular_buffer<T, S, IT>::operator[](IT index) const {
+const T& canlib_circular_buffer<T, S, IT>::start() const {
+  return buffer[1];
+}
+
+template <typename T, size_t S, typename IT>
+const T& canlib_circular_buffer<T, S, IT>::operator[](IT index) const {
   if (index >= count) return *tail;
   return *(buffer + ((head - buffer + index) % capacity));
 }
@@ -186,6 +196,12 @@ void inline canlib_circular_buffer<T, S, IT>::clear() {
   head = tail = buffer;
   count = 0;
 }
+
+template <typename T, size_t S, typename IT>
+size_t inline canlib_circular_buffer<T, S, IT>::offset() const {
+  return _offset;
+}
+
 #endif // CANLIB_CIRCULAR_BUFFER
 
 #ifndef CANLIB_CIRCULAR_BUFFER_SIZE
