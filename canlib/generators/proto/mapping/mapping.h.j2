@@ -2,7 +2,8 @@
 #define {{ network.name }}_MAPPING_H
 
 #include <string>
-#include <vector>
+#include <unordered_map>
+#include <functional>
 
 #include "{{ network.name }}.pb.h"
 
@@ -208,6 +209,62 @@ size_t inline canlib_circular_buffer<T, S, IT>::offset() const {
 #define CANLIB_CIRCULAR_BUFFER_SIZE 500
 #endif // CANLIB_CIRCULAR_BUFFER_SIZE
 
+
+#ifndef CANLIB_MAPPING_ADAPTOR
+#define CANLIB_MAPPING_ADAPTOR
+
+union mapping_union{
+    const int* _int;
+    const bool* _bool;
+    const float* _float32;
+    const double* _float64;
+
+    const int8_t* _int8;
+    const int16_t* _int16;
+    const int32_t* _int32;
+    const int64_t* _int64;
+
+    const uint8_t* _uint8;
+    const uint16_t* _uint16;
+    const uint32_t* _uint32;
+    const uint64_t* _uint64;
+
+    const char* _char;
+};
+
+enum mapping_type{
+    mapping_type_int,
+    mapping_type_bool,
+    mapping_type_float32,
+    mapping_type_float64,
+    mapping_type_int8,
+    mapping_type_int16,
+    mapping_type_int32,
+    mapping_type_int64,
+    mapping_type_uint8,
+    mapping_type_uint16,
+    mapping_type_uint32,
+    mapping_type_uint64,
+    mapping_type_char,
+    mapping_type_none
+};
+
+struct mapping_element_t{
+    mapping_union value;
+    mapping_type type;
+};
+
+struct message_element_t{
+  std::unordered_map<std::string, mapping_element_t> field;
+  size_t stride;
+  std::function<size_t()> size;
+  std::function<size_t()> offset;
+};
+
+typedef std::unordered_map<std::string, message_element_t> mapping_adaptor;
+
+#endif // CANLIB_MAPPING_ADAPTOR
+
 typedef struct {
 {%- for message in schema.messages %}
 {%- for name, id in message.id.items() %}
@@ -220,10 +277,45 @@ typedef struct {
 {%- endfor %}
 } {{ network.name }}_proto_pack;
 
+void {{ network.name }}_mapping_adaptor_construct(const {{ network.name }}_proto_pack& pack, mapping_adaptor& mapping_map);
 void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map);
-void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map);
+void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map, uint64_t resample_us);
 
 #ifdef {{ network.name }}_MAPPING_IMPLEMENTATION
+
+void {{ network.name }}_mapping_adaptor_construct(const {{ network.name }}_proto_pack& pack, mapping_adaptor& mapping_map){
+{%- for message in schema.messages %}
+{%- for name, id in message.id.items() %}
+{%- if message.has_conversions %}
+    mapping_map["{{ message.name }}"].size = std::bind(&canlib_circular_buffer<{{ network.name }}_message_{{ message.name }}_conversion, CANLIB_CIRCULAR_BUFFER_SIZE>::size, &pack.{{ name }});
+    mapping_map["{{ message.name }}"].offset = std::bind(&canlib_circular_buffer<{{ network.name }}_message_{{ message.name }}_conversion, CANLIB_CIRCULAR_BUFFER_SIZE>::offset, &pack.{{ name }});
+    mapping_map["{{ message.name }}"].stride = sizeof({{ network.name }}_message_{{ message.name }}_conversion);
+{%- else %}
+    mapping_map["{{ message.name }}"].size = std::bind(&canlib_circular_buffer<{{ network.name }}_message_{{ message.name }}, CANLIB_CIRCULAR_BUFFER_SIZE>::size, &pack.{{ name }});
+    mapping_map["{{ message.name }}"].offset = std::bind(&canlib_circular_buffer<{{ network.name }}_message_{{ message.name }}, CANLIB_CIRCULAR_BUFFER_SIZE>::offset, &pack.{{ name }});
+    mapping_map["{{ message.name }}"].stride = sizeof({{ network.name }}_message_{{ message.name }});
+{%- endif %}
+{%- for field in message.fields %}
+{%- if field.type.__class__.__name__ == "Enum" or field.type.__class__.__name__ == "BitSet" %}
+    mapping_map["{{ message.name }}"].field["{{ field.name }}"].value._uint16 = (uint16_t*)&pack.{{ name }}.start().{{ field.name }};
+    mapping_map["{{ message.name }}"].field["{{ field.name }}"].type = mapping_type_uint16;
+{%- else %}
+{%- if field.conversion == None %}
+    mapping_map["{{ message.name }}"].field["{{ field.name }}"].value._{{field.type.name}} = &pack.{{ name }}.start().{{ field.name }};
+    mapping_map["{{ message.name }}"].field["{{ field.name }}"].type = mapping_type_{{ field.type.name }};
+{%- else %}
+    mapping_map["{{ message.name }}"].field["{{ field.name }}"].value._{{field.conversion.converted_type.name}} = &pack.{{ name }}.start().{{ field.name }};
+    mapping_map["{{ message.name }}"].field["{{ field.name }}"].type = mapping_type_{{ field.conversion.converted_type.name }};
+{%- endif%}
+{%- endif%}
+{%- endfor %}
+#ifdef CANLIB_TIMESTAMP
+    mapping_map["{{ message.name }}"].field["_timestamp"].value._uint64 = &pack.{{ name }}.start()._timestamp;
+    mapping_map["{{ message.name }}"].field["_timestamp"].type = mapping_type_uint64;
+#endif // CANLIB_TIMESTAMP
+{%- endfor %}
+{%- endfor %} 
+}
 
 void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map) {
     int index = {{ network.name }}_index_from_id(id);
@@ -255,7 +347,7 @@ void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network
     }
 }
 
-void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map) {
+void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map, uint64_t resample_us) {
 {%- for message in schema.messages %}
 {%- for name, id in message.id.items() %}
     for(int i = 0; i < pack->{{ name | lower }}_size(); i++){
@@ -264,16 +356,21 @@ void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ net
 {%- else %}
         static {{ network.name }}_message_{{ message.name }} instance;
 {%- endif %}
+#ifdef CANLIB_TIMESTAMP
+        static uint64_t last_timestamp = 0;
+        instance._timestamp = pack->{{ name | lower }}(i)._inner_timestamp();
+        if(instance._timestamp - last_timestamp < resample_us)
+            continue;
+        else
+            last_timestamp = instance._timestamp;
+#endif // CANLIB_TIMESTAMP
 {%- for field in message.fields %}
-        instance.{{ field.name }} =
+        instance.{{ field.name }} = 
 {%- if field.type.__class__.__name__ == "Enum" -%}
          ({{ network.name }}_{{ field.type.name }})
 {%- endif -%}
         pack->{{ name | lower }}(i).{{ field.name }}();
 {%- endfor %}
-#ifdef CANLIB_TIMESTAMP
-        instance._timestamp = pack->{{ name | lower }}(i)._inner_timestamp();
-#endif // CANLIB_TIMESTAMP
         map->{{ name }}.push(instance);
     }
 {%- endfor %}
