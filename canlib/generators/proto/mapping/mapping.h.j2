@@ -279,7 +279,7 @@ typedef struct {
 
 void {{ network.name }}_mapping_adaptor_construct(const {{ network.name }}_proto_pack& pack, mapping_adaptor& mapping_map);
 void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map);
-void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map);
+void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map, uint64_t resample_us);
 
 #ifdef {{ network.name }}_MAPPING_IMPLEMENTATION
 
@@ -347,7 +347,7 @@ void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network
     }
 }
 
-void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map) {
+void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ network.name }}_proto_pack* map, uint64_t resample_us) {
 {%- for message in schema.messages %}
 {%- for name, id in message.id.items() %}
     for(int i = 0; i < pack->{{ name | lower }}_size(); i++){
@@ -356,16 +356,21 @@ void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, {{ net
 {%- else %}
         static {{ network.name }}_message_{{ message.name }} instance;
 {%- endif %}
+#ifdef CANLIB_TIMESTAMP
+        static uint64_t last_timestamp = 0;
+        instance._timestamp = pack->{{ name | lower }}(i)._inner_timestamp();
+        if(instance._timestamp - last_timestamp < resample_us)
+            continue;
+        else
+            last_timestamp = instance._timestamp;
+#endif // CANLIB_TIMESTAMP
 {%- for field in message.fields %}
-        instance.{{ field.name }} =
+        instance.{{ field.name }} = 
 {%- if field.type.__class__.__name__ == "Enum" -%}
          ({{ network.name }}_{{ field.type.name }})
 {%- endif -%}
         pack->{{ name | lower }}(i).{{ field.name }}();
 {%- endfor %}
-#ifdef CANLIB_TIMESTAMP
-        instance._timestamp = pack->{{ name | lower }}(i)._inner_timestamp();
-#endif // CANLIB_TIMESTAMP
         map->{{ name }}.push(instance);
     }
 {%- endfor %}
