@@ -160,7 +160,7 @@ class Conversion:
         CURRENT_TYPES = UNSIGNED_NUMBER_TYPES_BY_SIZE
         if options.get("signed", False) == True:
             CURRENT_TYPES = SIGNED_NUMBER_TYPES_BY_SIZE
-        
+
         if "force" in options:
             raw_type = NUMBER_TYPES[options["force"]]
 
