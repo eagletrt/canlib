@@ -111,6 +111,11 @@ class Message:
         sorted_fields = sorted(self.fields, key=lambda f: f.bit_size, reverse=True)
 
         for field in sorted_fields:
+            if message.get("endianness", "little") == "bigAss":
+                field.endianness = "bigAss"
+            else:
+                field.endianness = "little"
+
             if field.bit_size % 8 == 0:
                 field.shift = 0
             else:
@@ -207,6 +212,7 @@ class Field:
         self.alignment_index = 0
         self.shift = None
         self.bit_mask = None
+        self.endianness = "little"
 
     def __repr__(self):
         return f"{self.name}:{self.type.name}"

@@ -70,18 +70,24 @@ def serialize_byte(fields: List[Field], prefix: str) -> str:
 
 
 def serialize_big(network: Network, field: Field, prefix: str) -> str:
+    rhs = []
     if isinstance(field.type, Number) and field.type.name in ["float32", "float64"]:
-        return [
+        rhs = [
             f"{network.name}_{field.type.name}_to_bytes({prefix}{field.name}, {byte_index})"
             for byte_index in range(field.bit_size // 8)
         ]
     elif field.bit_size > 8:
-        return [f"{prefix}{field.name} & 255"] + [
+        rhs = [f"{prefix}{field.name} & 255"] + [
             f"({prefix}{field.name} >> {number_index * 8}) & 255"
             for number_index in range(1, field.bit_size // 8)
         ]
     else:
-        return [f"{prefix}{field.name}"]
+        rhs = [f"{prefix}{field.name}"]
+
+    # check endianness
+    if field.endianness == "bigAss":
+        rhs.reverse()
+    return rhs
 
 
 def serialize(network: Network, fields: List[Field], prefix: str = ""):
@@ -100,11 +106,22 @@ def deserialize_float_constructor(index: int, field: Field) -> str:
     return f"{{{{{', '.join(fields)}}}}}"
 
 
-def deserialize_bytes(index: int, field: Field) -> str:
+def deserialize_bytes_little_endian(index: int, field: Field) -> str:
     fields = [
         f"(data[{index + number_index + 1}] << {8 * (number_index + 1)})"
         for number_index in range(field.bit_size // 8 - 1)
     ]
+    fields.insert(0, f"data[{index}]")
+    return " | ".join(fields)
+
+
+def deserialize_bytes_big_endian(index: int, field: Field) -> str:
+    _max = field.bit_size // 8 - 1
+    fields = [
+        f"(data[{_max + index - (number_index + 1)}] << {8 * (number_index + 1)})"
+        for number_index in range(field.bit_size // 8 - 1)
+    ]
+    fields.insert(0, f"data[{_max + index}]")
     return " | ".join(fields)
 
 
@@ -113,7 +130,10 @@ def deserialize_big(network: Network, index: int, field: Field) -> str:
         constructor = deserialize_float_constructor(index, field)
         return f"(({casts(network, field)}_helper) {constructor}).value"
     elif field.bit_size > 8:
-        return f"data[{index}] | {deserialize_bytes(index, field)}"
+        if field.endianness == "bigAss":
+            return deserialize_bytes_big_endian(index, field)
+        else:
+            return deserialize_bytes_little_endian(index, field)
     else:
         return f"data[{index}]"
 
