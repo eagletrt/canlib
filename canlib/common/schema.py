@@ -32,13 +32,17 @@ NUMBER_TYPES = {
     "float64": Number("float64", 64, "PRIf64"),
 }
 
-NUMBER_TYPES_BY_SIZE = {
+UNSIGNED_NUMBER_TYPES_BY_SIZE = {
     1: NUMBER_TYPES["uint8"],
     2: NUMBER_TYPES["uint16"],
     3: NUMBER_TYPES["uint32"],
-    4: NUMBER_TYPES["uint32"],
-    5: NUMBER_TYPES["uint64"],
-    6: NUMBER_TYPES["uint64"],
+    4: NUMBER_TYPES["uint64"],
+}
+SIGNED_NUMBER_TYPES_BY_SIZE = {
+    1: NUMBER_TYPES["int8"],
+    2: NUMBER_TYPES["int16"],
+    3: NUMBER_TYPES["int32"],
+    4: NUMBER_TYPES["int64"],
 }
 
 
@@ -153,6 +157,10 @@ class Conversion:
         desired_type = NUMBER_TYPES[options["type"]]
         raw_type = None
 
+        CURRENT_TYPES = UNSIGNED_NUMBER_TYPES_BY_SIZE
+        if options.get("signed", False) == True:
+            CURRENT_TYPES = SIGNED_NUMBER_TYPES_BY_SIZE
+        
         if "force" in options:
             raw_type = NUMBER_TYPES[options["force"]]
 
@@ -162,13 +170,13 @@ class Conversion:
             numbers = (r1 - r0) * (1 / prec)
 
             if numbers < 2**8:
-                raw_type = NUMBER_TYPES_BY_SIZE[1]
+                raw_type = CURRENT_TYPES[1]
             elif numbers < 2**16:
-                raw_type = NUMBER_TYPES_BY_SIZE[2]
+                raw_type = CURRENT_TYPES[2]
             elif numbers < 2**32:
-                raw_type = NUMBER_TYPES_BY_SIZE[3]
+                raw_type = CURRENT_TYPES[3]
             elif numbers < 2**64:
-                raw_type = NUMBER_TYPES_BY_SIZE[4]
+                raw_type = CURRENT_TYPES[4]
             else:
                 raise TypeError(f"{name} is too large")
 
@@ -211,7 +219,7 @@ class Enum:
 
         self.bit_size = math.ceil(math.log2(len(self.items)))
         self.byte_size = max(self.bit_size // 8, 1)
-        self.base_type = NUMBER_TYPES_BY_SIZE[self.byte_size]
+        self.base_type = UNSIGNED_NUMBER_TYPES_BY_SIZE[self.byte_size]
 
         self.format_string = self.base_type.format_string
 
@@ -229,7 +237,7 @@ class BitSet:
 
         self.bit_size = (len(self.items) + 7) & (-8)
         self.byte_size = max(self.bit_size // 8, 1)
-        self.base_type = NUMBER_TYPES_BY_SIZE[self.byte_size]
+        self.base_type = UNSIGNED_NUMBER_TYPES_BY_SIZE[self.byte_size]
 
         self.format_string = self.base_type.format_string
 
