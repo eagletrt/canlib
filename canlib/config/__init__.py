@@ -17,9 +17,6 @@ PY_UTILS_INCLUDE = "utils.py"
 C_CAN_CONFIG_INCLUDE = "can_config.h"
 PY_CAN_CONFIG_INCLUDE = "can_config.py"
 
-# CUSTOMIZATION SETTINGS
-IS_LITTLE_ENDIAN = True
-
 COLUMNS_ORDER = [
     "name",
     "id",

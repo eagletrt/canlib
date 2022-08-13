@@ -93,8 +93,8 @@ def struct_schema(field: Field):
                 raise ValueError(f"{field.type.name} type unsupported")
 
 
-def pack_schema(alignment: dict) -> str:
-    schema = "<" if config.IS_LITTLE_ENDIAN else ">"
+def pack_schema(alignment: dict, endianness: str) -> str:
+    schema = "<" if endianness == "bigAss" else ">"
     for items in alignment.values():
         if len(items) > 1:
             schema += "B"
@@ -124,19 +124,19 @@ def pack_fields(alignment: dict, prefix="self"):
     return ", ".join(fields)
 
 
-def serialize(_: Network, message):
+def serialize(_: Network, message: Message):
     if len(message.fields) == 0:
         return ""
 
     alignment = message.alignment
-    return f'pack("{pack_schema(alignment)}", {pack_fields(alignment)})'
+    return f'pack("{pack_schema(alignment, message.endianness)}", {pack_fields(alignment)})'
 
 
-def unpack_schema(alignment, field_name):
-    schema = "<" if config.IS_LITTLE_ENDIAN else ">"
+def unpack_schema(alignment: dict, field: Field) -> str:
+    schema = "<" if field.endianness == "bigAss" else ">"
     max_index = 0
     for index, items in alignment.items():
-        if field_name in [item.name for item in items]:
+        if field.name in [item.name for item in items]:
             if len(items) > 1:
                 schema += "B"
                 max_index = index + 2
@@ -158,7 +158,7 @@ def bitset_unpack(alignment: dict, field: Field):
     for byte, reversed_byte in zip(bytes, reversed_bytes):
         if isinstance(field.type, BitSet):
             deserialized.append(
-                f'(unpack("{ unpack_schema(alignment, field.name) }", data[0:{ index+field.byte_size }])[{ byte }] << { reversed_byte*8 })'
+                f'(unpack("{ unpack_schema(alignment, field) }", data[0:{ index+field.byte_size }])[{ byte }] << { reversed_byte*8 })'
             )
     return " | ".join(deserialized)
 
@@ -168,11 +168,11 @@ def deserialize_bitset(network: Network, alignment: dict, field: Field):
 
 
 def deserialize_without_shift(network: Network, alignment: dict, field: Field):
-    return f'{casts(network, field)}(unpack("{unpack_schema(alignment, field.name)}", data[0:{field.alignment_index + field.byte_size}])[0])'
+    return f'{casts(network, field)}(unpack("{unpack_schema(alignment, field)}", data[0:{field.alignment_index + field.byte_size}])[0])'
 
 
 def deserialize_with_shift(network: Network, alignment: dict, field: Field):
-    return f'{casts(network, field)}((unpack("{unpack_schema(alignment, field.name)}", data[0:{field.alignment_index + field.byte_size}])[0] & {field.bit_mask}) >> {field.shift})'
+    return f'{casts(network, field)}((unpack("{unpack_schema(alignment, field)}", data[0:{field.alignment_index + field.byte_size}])[0] & {field.bit_mask}) >> {field.shift})'
 
 
 def deserialize(network: Network, message: Message):

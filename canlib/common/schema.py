@@ -86,6 +86,7 @@ class Message:
         self.id = message.get("id", {})
         self.alignment = {0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: []}
         self.has_conversions = False
+        self.endianness = message.get("endianness", "little")
 
         if self.interval not in ALLOWED_INTERVALS:
             raise ValueError(f"Invalid interval {self.interval}, message {name}")
@@ -111,10 +112,7 @@ class Message:
         sorted_fields = sorted(self.fields, key=lambda f: f.bit_size, reverse=True)
 
         for field in sorted_fields:
-            if message.get("endianness", "little") == "bigAss":
-                field.endianness = "bigAss"
-            else:
-                field.endianness = "little"
+            field.endianness = self.endianness
 
             if field.bit_size % 8 == 0:
                 field.shift = 0

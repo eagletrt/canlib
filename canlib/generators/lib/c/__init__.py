@@ -20,7 +20,7 @@ def generate(network: Network, schema: Schema, output_path: Path):
     ids_path = output_path / "ids.h"
     ids_path.write_text(TEMPLATE_IDS.render(network=network, schema=schema))
 
-    endianess = "LITTLE_ENDIAN" if config.IS_LITTLE_ENDIAN else "BIG_ENDIAN"
+    endianess = "LITTLE_ENDIAN"
 
     repo = Repo(search_parent_directories=True)
     short_sha = repo.head.object.hexsha[:8]
@@ -45,17 +45,17 @@ def generate(network: Network, schema: Schema, output_path: Path):
     watchdog_path.write_text(TEMPLATE_WATCHDOG.render(network=network, schema=schema))
 
 
-def get_conversion(conversion: Conversion, network: Network, prefix: str):
+def get_conversion(conversion: Conversion, network: Network, prefix: str) -> str:
     sign = "-" if conversion.offset > 0 else "+"
     return f"({network.name}_{conversion.raw_type.name})(({prefix} {sign} {abs(conversion.offset)}) * {conversion.conversion})"
 
 
-def get_deconversion(conversion: Conversion, network: Network, prefix: str):
+def get_deconversion(conversion: Conversion, network: Network, prefix: str) -> str:
     sign = "-" if conversion.offset < 0 else "+"
     return f"((({network.name}_{conversion.converted_type.name}){prefix}) / {conversion.conversion}) {sign} {abs(conversion.offset)}"
 
 
-def casts(network: Network, field: Field):
+def casts(network: Network, field: Field) -> str:
     return network.name + "_" + field.type.name
 
 
@@ -69,7 +69,7 @@ def serialize_byte(fields: List[Field], prefix: str) -> str:
     return " | ".join(fields)
 
 
-def serialize_big(network: Network, field: Field, prefix: str) -> str:
+def serialize_bytes(network: Network, field: Field, prefix: str) -> List[str]:
     rhs = []
     if isinstance(field.type, Number) and field.type.name in ["float32", "float64"]:
         rhs = [
@@ -90,13 +90,13 @@ def serialize_big(network: Network, field: Field, prefix: str) -> str:
     return rhs
 
 
-def serialize(network: Network, fields: List[Field], prefix: str = ""):
+def serialize(network: Network, fields: List[Field], prefix: str = "") -> List[str]:
     if len(fields) == 0:
         return []
 
     if len(fields) == 1 and fields[0].bit_size >= 8:
         field = fields[0]
-        return serialize_big(network, field, prefix)
+        return serialize_bytes(network, field, prefix)
     else:
         return [serialize_byte(fields, prefix)]
 
@@ -125,7 +125,7 @@ def deserialize_bytes_big_endian(index: int, field: Field) -> str:
     return " | ".join(fields)
 
 
-def deserialize_big(network: Network, index: int, field: Field) -> str:
+def deserialize_bytes(network: Network, index: int, field: Field) -> str:
     if isinstance(field.type, Number) and field.type.name in ["float32", "float64"]:
         constructor = deserialize_float_constructor(index, field)
         return f"(({casts(network, field)}_helper) {constructor}).value"
@@ -138,22 +138,22 @@ def deserialize_big(network: Network, index: int, field: Field) -> str:
         return f"data[{index}]"
 
 
-def deserialize_small(network: Network, index: int, field: Field) -> str:
+def deserialize_byte(network: Network, index: int, field: Field) -> str:
     if field.type.name != "bool":
         return f"({casts(network, field)}) ((data[{index}] & {field.bit_mask}) >> {field.shift})"
     else:
         return f"(data[{index}] & {field.bit_mask}) >> {field.shift}"
 
 
-def deserialize(network: Network, index: int, fields: List[Field]) -> str:
+def deserialize(network: Network, index: int, fields: List[Field]) -> dict:
     result = {}
 
     if fields:
         if len(fields) == 1 and fields[0].bit_size >= 8:
             field = fields[0]
-            result[field.name] = deserialize_big(network, index, field)
+            result[field.name] = deserialize_bytes(network, index, field)
         else:
             for field in fields:
-                result[field.name] = deserialize_small(network, index, field)
+                result[field.name] = deserialize_byte(network, index, field)
 
     return result
