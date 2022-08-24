@@ -5,7 +5,7 @@ all:
 
 	mkdir -p out
 
-	cd out &&  cmake .. && make
+	cd out &&  cmake .. && make -j
 
 	@echo "===================="
 	@echo "Starting PROTO tests"

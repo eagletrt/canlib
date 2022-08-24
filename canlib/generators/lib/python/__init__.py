@@ -94,7 +94,7 @@ def struct_schema(field: Field):
 
 
 def pack_schema(alignment: dict, endianness: str) -> str:
-    schema = "<" if endianness == "bigAss" else ">"
+    schema = ">" if endianness == "bigAss" else "<"
     for items in alignment.values():
         if len(items) > 1:
             schema += "B"
@@ -133,7 +133,7 @@ def serialize(_: Network, message: Message):
 
 
 def unpack_schema(alignment: dict, field: Field) -> str:
-    schema = "<" if field.endianness == "bigAss" else ">"
+    schema = ">" if field.endianness == "bigAss" else "<"
     max_index = 0
     for index, items in alignment.items():
         if field.name in [item.name for item in items]:

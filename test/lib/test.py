@@ -25,3 +25,10 @@ message = network.message_DAS_ERRORS(
 
 print("DAS_ERRORS", end=" ")
 print_bits(message.serialize())
+
+message = network.message_SET_TS_STATUS(
+    ts_status_set=network.Toggle.OFF
+)
+
+print("SET_TS_STATUS", end=" ")
+print_bits(message.serialize())

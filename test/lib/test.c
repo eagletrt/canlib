@@ -27,7 +27,6 @@ void print_bits(unsigned char* bytes, size_t num_bytes) {
 }
 
 int main() {
-  // ENUMS
   uint8_t data[8] = {0};
   test_serialize_CAR_STATUS(data, test_InverterStatus_ON,
                             test_InverterStatus_ON, test_CarStatus_RUN);
@@ -35,13 +34,18 @@ int main() {
   printf("CAR_STATUS ");
   print_bits(data, 8);
 
-  // BITSETS
   memset(data, 0, 8);
   test_serialize_DAS_ERRORS(data, test_DasErrors_FSM |
                                       test_DasErrors_INVL_TOUT |
                                       test_DasErrors_PEDAL_IMPLAUSIBILITY);
 
   printf("DAS_ERRORS ");
+  print_bits(data, 8);
+
+  memset(data, 0, 8);
+  test_serialize_SET_TS_STATUS(data, test_Toggle_OFF);
+
+  printf("SET_TS_STATUS ");
   print_bits(data, 8);
 
   return 0;
