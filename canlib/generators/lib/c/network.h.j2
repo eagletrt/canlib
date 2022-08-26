@@ -161,7 +161,9 @@ typedef struct {
     uint16_t id;
     void* message_raw;
     void* message_conversion;
-} {{ network.name }}_devices[{{ network.name }}_MESSAGE_COUNT];
+} {{ network.name }}_devices_t;
+typedef {{ network.name }}_devices_t {{ network.name }}_devices[{{ network.name }}_MESSAGE_COUNT];
+
 
 // ============== INDEXES ============ //
 
