@@ -165,8 +165,10 @@ class Conversion:
             CURRENT_TYPES = SIGNED_NUMBER_TYPES_BY_SIZE
 
         if not "force" in options and not "precision" in options:
-            raise ValueError(f"Conversion: field '{name}' has neither precision nor force.")
-            
+            raise ValueError(
+                f"Conversion: field '{name}' has neither precision nor force."
+            )
+
         if "force" in options:
             raw_type = NUMBER_TYPES[options["force"]]
 
