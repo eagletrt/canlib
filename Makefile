@@ -13,3 +13,6 @@ format:
 	isort .
 
 .PHONY: test clean format
+
+build:
+	python3 canlib/__init__.py generate-all test/networks/ ids/ lib/ proto/ csv/
