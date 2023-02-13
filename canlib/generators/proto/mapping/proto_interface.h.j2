@@ -242,12 +242,12 @@ typedef std::unordered_map<messages_name, message_strings> network_strings;
 
 #endif // CANLIB_PROTO_INTERFACE_TYPES
 
-void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map);
-void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, network_enums* net_enums, network_signals* net_signals, network_strings* net_strings, uint64_t resample_us);
+void {{ network.name }}_proto_interface_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map);
+void {{ network.name }}_proto_interface_deserialize({{ network.name }}::Pack* pack, network_enums* net_enums, network_signals* net_signals, network_strings* net_strings, uint64_t resample_us);
 
 #ifdef {{ network.name }}_PROTO_INTERAFCE_IMPLEMENTATION
 
-void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, network_enums* net_enums, network_signals* net_signals, network_strings* net_strings, uint64_t resample_us) {
+void {{ network.name }}_proto_interface_deserialize({{ network.name }}::Pack* pack, network_enums* net_enums, network_signals* net_signals, network_strings* net_strings, uint64_t resample_us) {
   char buffer[1024];
 {%- for message in schema.messages %}
 {%- for name, id in message.id.items() %}
@@ -273,7 +273,7 @@ void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, networ
 {%- endfor %}
 }
 
-void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map) {
+void {{ network.name }}_proto_interface_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map) {
     int index = {{ network.name }}_index_from_id(id);
 
     if (index == -1) return;
