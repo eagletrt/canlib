@@ -245,7 +245,7 @@ typedef std::unordered_map<messages_name, message_strings> network_strings;
 void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network.name }}::Pack* pack, {{ network.name }}_devices* map);
 void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, network_enums* net_enums, network_signals* net_signals, network_strings* net_strings, uint64_t resample_us);
 
-//#ifdef {{ network.name }}_MAPPING_IMPLEMENTATION
+#ifdef {{ network.name }}_PROTO_INTERAFCE_IMPLEMENTATION
 
 void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, network_enums* net_enums, network_signals* net_signals, network_strings* net_strings, uint64_t resample_us) {
 {%- for message in schema.messages %}
@@ -255,14 +255,14 @@ void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, networ
         static uint64_t last_timestamp = 0;
         if(pack->{{ name | lower }}(i)._inner_timestamp() - last_timestamp < resample_us) continue;
         else last_timestamp = pack->{{ name | lower }}(i)._inner_timestamp();
-        (*net_signals)["{{ message.name }}"]["_timestamp"].push(pack->{{ name | lower }}(i)._inner_timestamp());
+        (*net_signals)["{{ name }}"]["_timestamp"].push(pack->{{ name | lower }}(i)._inner_timestamp());
 #endif // CANLIB_TIMESTAMP
 {% for field in message.fields %}
 
-{%- if field.type.__class__.__name__ == "Enum" %}
-        (*net_enums)["{{ message.name }}"]["{{ field.name }}"].push(pack->{{ name | lower }}(i).{{ field.name }}());
+{%- if field.type.__class__.__name__ == "Enum" or  field.type.__class__.__name__ == "BitSet"%}
+        (*net_enums)["{{ name }}"]["{{ field.name }}"].push(pack->{{ name | lower }}(i).{{ field.name }}());
 {%- else %}
-        (*net_signals)["{{ message.name }}"]["{{ field.name }}"].push(pack->{{ name | lower }}(i).{{ field.name }}());
+        (*net_signals)["{{ name }}"]["{{ field.name }}"].push(pack->{{ name | lower }}(i).{{ field.name }}());
 {%- endif %}
 {%- endfor %}
     }
@@ -302,6 +302,6 @@ void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network
 
 
 
-//#endif // {{ network.name }}_MAPPING_IMPLEMENTATION
+#endif // {{ network.name }}_PROTO_INTERAFCE_IMPLEMENTATION
 
 #endif // {{ network.name }}_MAPPING_H
