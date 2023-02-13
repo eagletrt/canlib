@@ -1,0 +1,666 @@
+{
+  "version": 1.0,
+  "types": {},
+  "messages": [
+    {
+      "name": "IMU_ANGULAR_RATE",
+      "fixed_id": 1260,
+      "sending": ["IMU"],
+      "receiving": ["DAS"],
+      "endianness": "bigAss",
+      "description": "Inertial Measurement Unit [x,y,z]-axis angular rate value. 0.01dps per bit, Big-Endian, 16bit Total, signed",
+      "contents": {
+        "ang_rate_x": {
+          "type": "float32",
+          "range": [0, 245],
+          "precision": 0.1,
+          "signed": true
+        },
+        "ang_rate_y": {
+          "type": "float32",
+          "range": [0, 245],
+          "precision": 0.1,
+          "signed": true
+        },
+        "ang_rate_z": {
+          "type": "float32",
+          "range": [0, 245],
+          "precision": 0.1,
+          "signed": true
+        }
+      }
+    },
+    {
+      "name": "IMU_ACCELERATION",
+      "fixed_id": 1261,
+      "sending": ["IMU"],
+      "receiving": ["DAS"],
+      "endianness": "bigAss",
+      "description": "Inertial Measurement Unit [x,y,z]-axis acceleration value. 0.01g per bit, Big-Endian, 16bit Total, signed",
+      "contents": {
+        "accel_x": {
+          "type": "float32",
+          "range": [0, 8],
+          "precision": 0.01,
+          "signed": true
+        },
+        "accel_y": {
+          "type": "float32",
+          "range": [0, 8],
+          "precision": 0.01,
+          "signed": true
+        },
+        "accel_z": {
+          "type": "float32",
+          "range": [0, 8],
+          "precision": 0.01,
+          "signed": true
+        },
+        "temperature": "int16"
+      }
+    },
+    {
+      "name": "IRTS_FL_0",
+      "fixed_id": 1460,
+      "sending": ["IRTS_FL"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Front Left wheel InfraRed Temperature Sensor data, channels 1 through 4. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel1": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel2": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel3": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel4": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_FL_1",
+      "fixed_id": 1461,
+      "sending": ["IRTS_FL"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Front Left wheel InfraRed Temperature Sensor data, channels 5 through 8. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel5": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel6": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel7": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel8": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_FL_2",
+      "fixed_id": 1462,
+      "sending": ["IRTS_FL"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Front Left wheel InfraRed Temperature Sensor data, channels 9 through 12. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel9": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel10": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel11": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel12": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_FL_3",
+      "fixed_id": 1463,
+      "sending": ["IRTS_FL"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Front Left wheel InfraRed Temperature Sensor data, channels 13 through 16. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel13": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel14": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel15": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel16": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_FR_0",
+      "fixed_id": 1464,
+      "sending": ["IRTS_FR"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Front Right wheel InfraRed Temperature Sensor data, channels 1 through 4. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel1": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel2": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel3": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel4": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_FR_1",
+      "fixed_id": 1465,
+      "sending": ["IRTS_FR"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Front Right wheel InfraRed Temperature Sensor data, channels 5 through 8. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel5": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel6": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel7": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel8": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_FR_2",
+      "fixed_id": 1466,
+      "sending": ["IRTS_FR"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Front Right wheel InfraRed Temperature Sensor data, channels 9 through 12. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel9": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel10": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel11": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel12": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_FR_3",
+      "fixed_id": 1467,
+      "sending": ["IRTS_FR"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Front Right wheel InfraRed Temperature Sensor data, channels 13 through 16. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel13": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel14": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel15": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel16": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_RL_0",
+      "fixed_id": 1468,
+      "sending": ["IRTS_RL"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Rear Left wheel InfraRed Temperature Sensor data, channels 1 through 4. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel1": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel2": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel3": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel4": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_RL_1",
+      "fixed_id": 1469,
+      "sending": ["IRTS_RL"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Rear Left wheel InfraRed Temperature Sensor data, channels 5 through 8. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel5": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel6": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel7": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel8": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_RL_2",
+      "fixed_id": 1470,
+      "sending": ["IRTS_RL"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Rear Left wheel InfraRed Temperature Sensor data, channels 9 through 12. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel9": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel10": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel11": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel12": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_RL_3",
+      "fixed_id": 1471,
+      "sending": ["IRTS_RL"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Rear Left wheel InfraRed Temperature Sensor data, channels 13 through 16. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel13": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel14": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel15": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel16": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_RR_0",
+      "fixed_id": 1472,
+      "sending": ["IRTS_RR"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Rear Right wheel InfraRed Temperature Sensor data, channels 1 through 4. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel1": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel2": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel3": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel4": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_RR_1",
+      "fixed_id": 1473,
+      "sending": ["IRTS_RR"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Rear Right wheel InfraRed Temperature Sensor data, channels 5 through 8. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel5": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel6": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel7": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel8": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_RR_2",
+      "fixed_id": 1474,
+      "sending": ["IRTS_RR"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Rear Right wheel InfraRed Temperature Sensor data, channels 9 through 12. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel9": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel10": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel11": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel12": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "IRTS_RR_3",
+      "fixed_id": 1475,
+      "sending": ["IRTS_RR"],
+      "endianness": "bigAss",
+      "receiving": ["DAS"],
+      "description": "Rear Right wheel InfraRed Temperature Sensor data, channels 13 through 16. 0.1˚C per bit, -100˚C offset, Big-Endian, 16bit Total, unsigned.",
+      "contents": {
+        "channel13": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel14": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel15": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        },
+        "channel16": {
+          "type": "float32",
+          "range": [-100, 0],
+          "precision": 0.1
+        }
+      }
+    },
+    {
+      "name": "GPS_COORDS",
+      "topic": "STEER",
+      "priority": 3,
+      "sending": ["TLM"],
+      "receiving": ["STEER"],
+      "description": "Coordinates received from GPS",
+      "contents": {
+        "latitude": "float32",
+        "longitude": "float32"
+      }
+    },
+    {
+      "name": "GPS_SPEED",
+      "topic": "STEER",
+      "priority": 3,
+      "sending": ["TLM"],
+      "receiving": ["STEER"],
+      "description": "Speed received from GPS",
+      "contents": {
+        "speed": "uint16"
+      }
+    },
+    {
+      "name": "LAP_COUNT",
+      "topic": "STEER",
+      "priority": 3,
+      "sending": ["TLM"],
+      "receiving": ["STEER"],
+      "description": "Lap counter and associated timestamp",
+      "contents": {
+        "lap_count": "uint8",
+        "lap_time": "uint32"
+      }
+    },
+    {
+      "name": "PEDALS_OUTPUT",
+      "topic": "STEER",
+      "priority": 4,
+      "interval": 10,
+      "sending": ["DAS"],
+      "receiving": ["STEER"],
+      "description": "Pedal output, already calibrated",
+      "contents": {
+        "apps": "uint8",
+        "bse_front": {
+          "type": "float32",
+          "range": [0, 100],
+          "force": "uint16"
+        },
+        "bse_rear": {
+          "type": "float32",
+          "range": [0, 100],
+          "force": "uint16"
+        }
+      }
+    },
+    {
+      "name": "CONTROL_OUTPUT",
+      "topic": "STEER",
+      "priority": 4,
+      "interval": 100,
+      "sending": ["DAS"],
+      "receiving": ["STEER", "TLM"],
+      "description": "Control output, N*m",
+      "contents": {
+        "estimated_velocity": {
+          "type": "float32",
+          "range": [-10, 50],
+          "force": "uint16"
+        },
+        "tmax_r": {
+          "type": "float32",
+          "range": [0, 80],
+          "force": "uint8"
+        },
+        "tmax_l": {
+          "type": "float32",
+          "range": [0, 80],
+          "force": "uint8"
+        },
+        "torque_l": {
+          "type": "float32",
+          "range": [0, 80],
+          "force": "uint16"
+        },
+        "torque_r": {
+          "type": "float32",
+          "range": [0, 80],
+          "force": "uint16"
+        }
+      }
+    },
+    {
+      "name": "STEERING_ANGLE",
+      "topic": "TELEMETRY",
+      "priority": 6,
+      "interval": 10,
+      "sending": ["DAS"],
+      "receiving": ["TELEMETRY"],
+      "description": "Steering angle in degrees",
+      "contents": {
+        "angle": "float32"
+      }
+    },
+    {
+      "name": "TPMS",
+      "topic": "STEER",
+      "priority": 7,
+      "sending": ["TELEMETRY"],
+      "receiving": ["STEER"],
+      "description": "Tire Pressure Monitoring System, pressure and temperature of each tire",
+      "contents": {
+        "fl_pressure": "uint8",
+        "fl_temperature": "uint8",
+        "fr_pressure": "uint8",
+        "fr_temperature": "uint8",
+        "rl_pressure": "uint8",
+        "rl_temperature": "uint8",
+        "rr_pressure": "uint8",
+        "rr_temperature": "uint8"
+      }
+    }
+  ]
+}

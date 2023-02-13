@@ -1,0 +1,269 @@
+{
+  "version": 1.2,
+  "types": {
+    "Errors": {
+      "type": "bitset",
+      "items": [
+        "CAN_COMM",
+        "LTC_COMM",
+        "TEMP_COMM_0",
+        "TEMP_COMM_1",
+        "TEMP_COMM_2",
+        "TEMP_COMM_3",
+        "TEMP_COMM_4",
+        "TEMP_COMM_5",
+        "OPEN_WIRE"
+      ]
+    },
+    "BalancingStatus": {
+      "type": "enum",
+      "items": ["OFF", "DISCHARGE"]
+    },
+    "BalancingCells": {
+      "type": "bitset",
+      "items": [
+        "CELL0",
+        "CELL1",
+        "CELL2",
+        "CELL3",
+        "CELL4",
+        "CELL5",
+        "CELL6",
+        "CELL7",
+        "CELL8",
+        "CELL9",
+        "CELL10",
+        "CELL11",
+        "CELL12",
+        "CELL13",
+        "CELL14",
+        "CELL15",
+        "CELL16",
+        "CELL17"
+      ]
+    }
+  },
+
+  "messages": [
+    {
+      "name": "BOARD_STATUS",
+      "topic": "STATUS",
+      "priority": 1,
+      "sending": [
+        "CELLBOARD0",
+        "CELLBOARD1",
+        "CELLBOARD2",
+        "CELLBOARD3",
+        "CELLBOARD4",
+        "CELLBOARD5"
+      ],
+      "receiving": ["MAINBOARD"],
+      "description": "Cellboard's status",
+      "contents": {
+        "errors": "Errors",
+        "balancing_status": "BalancingStatus"
+      }
+    },
+    {
+      "name": "TEMPERATURES",
+      "topic": "TEMPERATURE_INFO",
+      "priority": 2,
+      "sending": [
+        "CELLBOARD0",
+        "CELLBOARD1",
+        "CELLBOARD2",
+        "CELLBOARD3",
+        "CELLBOARD4",
+        "CELLBOARD5"
+      ],
+      "receiving": ["MAINBOARD"],
+      "description": "Cells' temperatures",
+      "contents": {
+        "start_index": "uint8",
+        "temp0": {
+          "type": "float32",
+          "range": [-20, 80],
+          "force": "uint8"
+        },
+        "temp1": {
+          "type": "float32",
+          "range": [-20, 80],
+          "force": "uint8"
+        },
+        "temp2": {
+          "type": "float32",
+          "range": [-20, 80],
+          "force": "uint8"
+        },
+        "temp3": {
+          "type": "float32",
+          "range": [-20, 80],
+          "force": "uint8"
+        },
+        "temp4": {
+          "type": "float32",
+          "range": [-20, 80],
+          "force": "uint8"
+        },
+        "temp5": {
+          "type": "float32",
+          "range": [-20, 80],
+          "force": "uint8"
+        }
+      }
+    },
+    {
+      "name": "VOLTAGES",
+      "topic": "VOLTAGE_INFO",
+      "priority": 5,
+      "sending": [
+        "CELLBOARD0",
+        "CELLBOARD1",
+        "CELLBOARD2",
+        "CELLBOARD3",
+        "CELLBOARD4",
+        "CELLBOARD5"
+      ],
+      "receiving": ["MAINBOARD"],
+      "description": "Cells' voltages",
+      "contents": {
+        "start_index": "uint8",
+        "voltage0": {
+          "type": "float32",
+          "range": [0, 5],
+          "precision": 0.0001
+        },
+        "voltage1": {
+          "type": "float32",
+          "range": [0, 5],
+          "precision": 0.0001
+        },
+        "voltage2": {
+          "type": "float32",
+          "range": [0, 5],
+          "precision": 0.0001
+        }
+      }
+    },
+    {
+      "name": "BALANCING",
+      "topic": "BALANCING",
+      "priority": 5,
+      "sending": ["MAINBOARD"],
+      "receiving": [
+        "CELLBOARD0",
+        "CELLBOARD1",
+        "CELLBOARD2",
+        "CELLBOARD3",
+        "CELLBOARD4",
+        "CELLBOARD5"
+      ],
+      "description": "Set discharging status for cells",
+      "contents": {
+        "board_index": "uint8",
+        "cells": "BalancingCells"
+      }
+    },
+    {
+      "name": "FW_UPDATE",
+      "fixed_id": 10,
+      "sending": ["MAINBOARD"],
+      "receiving": [
+        "CELLBOARD0",
+        "CELLBOARD1",
+        "CELLBOARD2",
+        "CELLBOARD3",
+        "CELLBOARD4",
+        "CELLBOARD5"
+      ],
+      "description": "Starts firmware update",
+      "contents": {
+        "board_index": "uint8"
+      }
+    },
+    {
+      "name": "FLASH_CELLBOARD_0_TX",
+      "fixed_id": 16,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_0_RX",
+      "fixed_id": 17,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_1_TX",
+      "fixed_id": 18,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_1_RX",
+      "fixed_id": 19,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_2_TX",
+      "fixed_id": 20,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_2_RX",
+      "fixed_id": 21,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_3_TX",
+      "fixed_id": 22,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_3_RX",
+      "fixed_id": 23,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_4_TX",
+      "fixed_id": 24,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_4_RX",
+      "fixed_id": 25,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_5_TX",
+      "fixed_id": 26,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    },
+    {
+      "name": "FLASH_CELLBOARD_5_RX",
+      "fixed_id": 27,
+      "sending": ["HANDCART"],
+      "receiving": ["BMS_HV"],
+      "contents": {}
+    }
+  ]
+}
