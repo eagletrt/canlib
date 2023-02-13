@@ -248,6 +248,7 @@ void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, networ
 #ifdef {{ network.name }}_PROTO_INTERAFCE_IMPLEMENTATION
 
 void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, network_enums* net_enums, network_signals* net_signals, network_strings* net_strings, uint64_t resample_us) {
+  char buffer[1024];
 {%- for message in schema.messages %}
 {%- for name, id in message.id.items() %}
     for(int i = 0; i < pack->{{ name | lower }}_size(); i++){
@@ -258,9 +259,11 @@ void {{ network.name }}_proto_deserialize({{ network.name }}::Pack* pack, networ
         (*net_signals)["{{ name }}"]["_timestamp"].push(pack->{{ name | lower }}(i)._inner_timestamp());
 #endif // CANLIB_TIMESTAMP
 {% for field in message.fields %}
-
 {%- if field.type.__class__.__name__ == "Enum" or  field.type.__class__.__name__ == "BitSet"%}
         (*net_enums)["{{ name }}"]["{{ field.name }}"].push(pack->{{ name | lower }}(i).{{ field.name }}());
+        {{ network.name }}_to_string_{{field.type.name}}(({{ network.name }}_{{field.type.name}})pack->{{ name | lower }}(i).{{ field.name }}(), buffer);
+        (*net_strings)["{{ name }}"]["{{ field.name }}"].push(buffer);
+        memset(buffer, 0, 1024);
 {%- else %}
         (*net_signals)["{{ name }}"]["{{ field.name }}"].push(pack->{{ name | lower }}(i).{{ field.name }}());
 {%- endif %}
@@ -280,9 +283,9 @@ void {{ network.name }}_proto_serialize_from_id(canlib_message_id id, {{ network
 {%- for name, id in message.id.items() %}
         case {{ id }}: {
 {%- if message.has_conversions %}
-            {{ network.name }}_message_{{ message.name }}_conversion* msg = ({{ network.name }}_message_{{ message.name }}_conversion*)(*map)[index].message_conversion;
+            {{ network.name }}_message_{{ message.name }}_conversion* msg = ({{ network.name }}_message_{{ message.name }}_conversion*)(&(*map)[index].message_conversion);
 {%- else %}
-            {{ network.name }}_message_{{ message.name }}* msg = ({{ network.name }}_message_{{ message.name }}*)(*map)[index].message_raw;
+            {{ network.name }}_message_{{ message.name }}* msg = ({{ network.name }}_message_{{ message.name }}*)(&(*map)[index].message_raw);
 {%- endif %}
             {{ network.name }}::{{ name }}* proto_msg = pack->add_{{ name | lower }}();
 {%- if message.fields %}
